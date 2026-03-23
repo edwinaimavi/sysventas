@@ -206,7 +206,7 @@ Route::get('reports/advanced/{id}', [AdvancedReportController::class, 'show'])
 
 Route::get('reports/advanced/kpis', [AdvancedReportController::class, 'kpis'])
     ->name('reports.advanced.kpis');
-/* Route::get('admin/reports/advanced/branches', [AdvancedReportController::class, 'branches']); */
+Route::get('reports/advanced/branches', [AdvancedReportController::class, 'branches']); 
 
 Route::get('reports/advanced/pdf', [AdvancedReportController::class, 'exportPdf'])->name('reports.advanced.pdf');
 

@@ -429,7 +429,7 @@ return [
         ], */
         ['header' => 'CONFIGURACION'],
         [
-            'text' => 'Abrir Caja',
+            'text' => 'Caja',
             'url' => 'admin/cash-box',
             'icon' => 'fas  fa-door-open',
             'label_color' => 'success',
