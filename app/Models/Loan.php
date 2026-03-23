@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class Loan extends Model
 {
@@ -39,10 +40,10 @@ class Loan extends Model
      *   RELACIONES
      * ======================= */
 
-    public function loan()
+    /*     public function loan()
     {
         return $this->belongsTo(\App\Models\Loan::class);
-    }
+    } */
 
     // Cliente solicitante
     public function client()
@@ -71,5 +72,54 @@ class Loan extends Model
     public function disbursements()
     {
         return $this->hasMany(LoanDisbursement::class);
+    }
+    public function payments()
+    {
+        return $this->hasMany(\App\Models\LoanPayment::class);
+    }
+
+
+    public function refinances()
+    {
+        return $this->hasMany(LoanRefinancing::class);
+    }
+
+    public function remainingBalance(): float
+    {
+        $branchId = $this->branch_id;
+
+        $paid = LoanPayment::where('loan_id', $this->id)
+            ->where('branch_id', $branchId)
+            ->where('status', 'completed')
+            ->sum('amount');
+
+        $remaining = (float)$this->total_payable - (float)$paid;
+        return $remaining < 0 ? 0 : round($remaining, 2);
+    }
+
+    public function activeRefinance()
+    {
+        return $this->hasOne(LoanRefinancing::class)->where('status', 'active');
+    }
+
+    public function hasActiveRefinance(): bool
+    {
+        return $this->activeRefinance()->exists();
+    }
+
+    public function isExpired(): bool
+    {
+        if (!$this->due_date) return false;
+
+        $today = Carbon::today();
+        $due   = Carbon::parse($this->due_date);
+
+        return $today->gt($due) && $this->status === 'disbursed' && $this->remainingBalance() > 0.009;
+    }
+
+    // app/Models/Loan.php
+    public function schedules()
+    {
+        return $this->hasMany(\App\Models\LoanSchedule::class)->orderBy('installment_no');
     }
 }

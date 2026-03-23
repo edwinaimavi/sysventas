@@ -216,6 +216,12 @@
     <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
 
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+
+
+
+
     {{-- ✅ RUTAS JS PARA NAVBAR --}}
     <script>
         window.routes = window.routes || {};
@@ -223,7 +229,6 @@
         window.routes.markReadReminder = "{{ route('admin.reminders.mark-read', ['reminder' => '__ID__']) }}";
         window.routes.showReminderJson = "{{ route('admin.reminders.show-json', ['reminder' => '__ID__']) }}";
         window.routes.cancelReminder = "{{ route('admin.reminders.cancel', ['reminder' => '__ID__']) }}";
-
     </script>
 
     {{-- ✅ JS NAVBAR RECORDATORIOS --}}
@@ -338,7 +343,28 @@
     <link rel="stylesheet" href="{{ asset('vendor/datatables/css/dataTables.bootstrap4.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/datatables/css/responsive.bootstrap4.css') }}">
 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css">
+
+
+
     <style type="text/css">
+        /* arregla el “se ve feo / se corta / queda detrás” */
+        .select2-container {
+            width: 100% !important;
+        }
+
+        .select2-container--open {
+            z-index: 1060 !important;
+        }
+
+        /* modal = 1050 */
+        .select2-dropdown {
+            z-index: 1060 !important;
+        }
+
+
         #divLoading {
             position: fixed;
             top: 0;

@@ -60,7 +60,55 @@ class ClientContactController extends Controller
     {
         //
     }
+    private function normalizeUserData(array $data): array
+    {
+        // Nombre y Apellidos: Primera letra mayúscula
+        if (isset($data['contact_name'])) {
+            $data['contact_name'] = ucwords(strtolower(trim($data['contact_name'])));
+        }
 
+        if (isset($data['relationship'])) {
+            $data['relationship'] = ucfirst(strtolower(trim($data['relationship'])));
+        }
+
+        // Email: todo minúscula
+        if (isset($data['email'])) {
+            $data['email'] = strtolower(trim($data['email']));
+        }
+
+        // Dirección: primera letra mayúscula
+        if (isset($data['address'])) {
+            $data['address'] = ucfirst(strtolower(trim($data['address'])));
+        }
+        // Dirección: primera letra mayúscula
+        if (isset($data['district'])) {
+            $data['district'] = ucfirst(strtolower(trim($data['district'])));
+        }
+        // Dirección: primera letra mayúscula
+        if (isset($data['province'])) {
+            $data['province'] = ucfirst(strtolower(trim($data['province'])));
+        }
+        // Dirección: primera letra mayúscula
+        if (isset($data['department'])) {
+            $data['department'] = ucfirst(strtolower(trim($data['department'])));
+        }
+
+        // DNI solo números
+        if (isset($data['document_number'])) {
+            $data['document_number'] = preg_replace('/\D/', '', $data['document_number']);
+        }
+
+        // Teléfono solo números
+        if (isset($data['phone'])) {
+            $data['phone'] = preg_replace('/\D/', '', $data['phone']);
+        }
+        // Teléfono solo números
+        if (isset($data['alt_phone'])) {
+            $data['alt_phone'] = preg_replace('/\D/', '', $data['alt_phone']);
+        }
+
+        return $data;
+    }
     /**
      * Store a newly created resource in storage.
      */
@@ -82,7 +130,12 @@ class ClientContactController extends Controller
             'is_primary'     => 'nullable|boolean',
         ]);
 
+        $data = $this->normalizeUserData($data);
+
         $data['is_primary'] = !empty($data['is_primary']);
+
+        // 🔥 SOLO PARA PRUEBA (simular lentitud)
+        sleep(5);
 
         $contact = ClientContact::create($data);
 
@@ -151,6 +204,8 @@ class ClientContactController extends Controller
             'relationship'   => 'nullable|string|max:50',
             'is_primary'     => 'nullable|boolean',
         ]);
+
+        $data = $this->normalizeUserData($data);
 
         $data['is_primary'] = !empty($data['is_primary']);
 

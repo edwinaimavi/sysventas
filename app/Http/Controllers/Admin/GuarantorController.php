@@ -28,7 +28,7 @@ class GuarantorController extends Controller
     public function list()
     {
         // Si luego quieres excluir "eliminados lógicamente", aquí puedes filtrar por status
-        $guarantors = Guarantor::where('status', '!=', -1) -> orderBy('id', 'desc')->get();
+        $guarantors = Guarantor::where('status', '!=', -1)->orderBy('id', 'desc')->get();
 
         return DataTables::of($guarantors)
             ->addIndexColumn()
@@ -49,6 +49,13 @@ class GuarantorController extends Controller
             ->make(true);
     }
 
+    public function consultarDniRuc($dniruc)
+    {
+        // 👉 reutilizamos EXACTAMENTE el método del ClientController
+        return app(ClientController::class)->consultarDniRuc($dniruc);
+    }
+
+
     /**
      * Show the form for creating a new resource.
      */
@@ -56,7 +63,57 @@ class GuarantorController extends Controller
     {
         //
     }
+    private function normalizeUserData(array $data): array
+    {
+        // Nombre y Apellidos: Primera letra mayúscula
+        if (isset($data['first_name'])) {
+            $data['first_name'] = ucwords(strtolower(trim($data['first_name'])));
+        }
 
+        if (isset($data['last_name'])) {
+            $data['last_name'] = ucwords(strtolower(trim($data['last_name'])));
+        }
+
+        if (isset($data['company_name'])) {
+            $data['company_name'] = ucwords(strtolower(trim($data['company_name'])));
+        }
+
+        // Email: todo minúscula
+        if (isset($data['email'])) {
+            $data['email'] = strtolower(trim($data['email']));
+        }
+
+        // Dirección: primera letra mayúscula
+        if (isset($data['relationship'])) {
+            $data['relationship'] = ucfirst(strtolower(trim($data['relationship'])));
+        }
+        if (isset($data['occupation'])) {
+            $data['occupation'] = ucfirst(strtolower(trim($data['occupation'])));
+        }
+
+        if (isset($data['address'])) {
+            $data['address'] = ucfirst(strtolower(trim($data['address'])));
+        }
+
+        // DNI solo números
+        if (isset($data['document_number'])) {
+            $data['document_number'] = preg_replace('/\D/', '', $data['document_number']);
+        }
+
+        if (isset($data['ruc'])) {
+            $data['ruc'] = preg_replace('/\D/', '', $data['ruc']);
+        }
+
+        // Teléfono solo números
+        if (isset($data['phone'])) {
+            $data['phone'] = preg_replace('/\D/', '', $data['phone']);
+        }
+        if (isset($data['alt_phone'])) {
+            $data['alt_phone'] = preg_replace('/\D/', '', $data['alt_phone']);
+        }
+
+        return $data;
+    }
     /**
      * Store a newly created resource in storage.
      */
@@ -66,18 +123,18 @@ class GuarantorController extends Controller
             'client_id'       => 'nullable|exists:clients,id',
             'is_external'     => 'nullable|boolean',
 
-            'document_type'   => 'nullable|in:DNI,RUC,CE',
+            'document_type'   => 'required|in:DNI,RUC,CE',
             'document_number' => [
-                'nullable',
+                'required',
                 'regex:/^[0-9]{8,15}$/',
                 Rule::unique('guarantors', 'document_number'),
             ],
 
-            'first_name'      => 'nullable|string|max:80',
-            'last_name'       => 'nullable|string|max:80',
+            'first_name'      => 'required_if:document_type,DNI,CE|nullable|string|max:80',
+            'last_name'       => 'required_if:document_type,DNI,CE|nullable|string|max:80',
 
-            'company_name'    => 'nullable|string|max:150',
-            'ruc'             => 'nullable|string|max:15',
+            'company_name'    => 'required_if:document_type,RUC|nullable|string|max:150',
+            'ruc'             => 'required_if:document_type,RUC|nullable|string|max:15',
 
             'phone'           => 'nullable|string|max:20',
             'alt_phone'       => 'nullable|string|max:20',
@@ -91,11 +148,21 @@ class GuarantorController extends Controller
 
             'photo'           => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ], [
-            'document_number.regex'  => 'El número de documento debe tener entre 8 y 15 dígitos numéricos.',
-            'document_number.unique' => 'El número de documento ya está registrado para otro garante.',
+            'document_type.required'   => 'Selecciona el tipo de documento.',
+            'document_number.required' => 'El número de documento es obligatorio.',
+            'document_number.regex'    => 'El número debe tener entre 8 y 15 dígitos.',
+            'document_number.unique'   => 'Este documento ya está registrado.',
 
-            'email.email'            => 'Ingresa un correo válido.',
+            'first_name.required_if'   => 'Los nombres son obligatorios para persona natural.',
+            'last_name.required_if'    => 'Los apellidos son obligatorios para persona natural.',
+
+            'company_name.required_if' => 'La razón social es obligatoria para empresa.',
+            'ruc.required_if'          => 'El RUC es obligatorio para empresa.',
+
+            'email.email'              => 'Ingresa un correo válido.',
         ]);
+
+        $data = $this->normalizeUserData($data);
 
         // Normalizar is_external
         $data['is_external'] = !empty($data['is_external']);
@@ -244,6 +311,7 @@ class GuarantorController extends Controller
 
             'email.email'            => 'Ingresa un correo válido.',
         ]);
+        $data = $this->normalizeUserData($data);
 
         $data['is_external'] = !empty($data['is_external']);
 
@@ -284,6 +352,7 @@ class GuarantorController extends Controller
 
         try {
             DB::beginTransaction();
+            sleep(5);
 
             if ($request->hasFile('photo')) {
                 $newPath = $request->file('photo')->store('guarantors');

@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CashBox;
+use App\Models\CashMovement;
 use Illuminate\Http\Request;
 use App\Models\Loan;
 use App\Models\LoanDisbursement;
+use App\Models\LoanSchedule;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -24,11 +27,13 @@ class LoanDisbursementController extends Controller
     /**
      * Listar desembolsos por préstamo (solo dentro de la sucursal actual)
      */
+    /* =========================================================
+     | LISTAR DESEMBOLSOS POR PRÉSTAMO
+     ========================================================= */
     public function byLoan($loanId)
     {
         $branchId = session('branch_id');
 
-        // Si por alguna razón no hay sucursal en sesión
         if (! $branchId) {
             return response()->json([
                 'status'  => 'error',
@@ -36,22 +41,16 @@ class LoanDisbursementController extends Controller
             ], 403);
         }
 
-        // Traer préstamo solo si pertenece a la sucursal actual
         $loan = Loan::where('id', $loanId)
             ->where('branch_id', $branchId)
             ->firstOrFail();
 
-        // Traer desembolsos de ese préstamo
         $disbursements = LoanDisbursement::where('loan_id', $loan->id)
-            ->orderBy('disbursement_date', 'asc')
-            ->orderBy('id', 'asc')
+            ->orderBy('disbursement_date')
+            ->orderBy('id')
             ->get();
 
-        // Mapear para enviar sólo lo necesario al front
         $data = $disbursements->map(function ($d) {
-            $url = $d->receipt_file ? Storage::url($d->receipt_file) : null;
-            $ext = $d->receipt_file ? strtolower(pathinfo($d->receipt_file, PATHINFO_EXTENSION)) : null;
-
             return [
                 'id'                => $d->id,
                 'disbursement_date' => optional($d->disbursement_date)->format('Y-m-d'),
@@ -61,12 +60,12 @@ class LoanDisbursementController extends Controller
                 'receipt_number'    => $d->receipt_number,
                 'status'            => $d->status,
                 'notes'             => $d->notes,
-                'receipt_file_url'  => $url,
-                'receipt_file_type' => $ext,
+                'receipt_file_url'  => $d->receipt_file ? Storage::url($d->receipt_file) : null,
+                'receipt_file_type' => $d->receipt_file
+                    ? strtolower(pathinfo($d->receipt_file, PATHINFO_EXTENSION))
+                    : null,
             ];
         });
-
-        $total = $data->sum('amount');
 
         return response()->json([
             'status' => 'success',
@@ -74,7 +73,7 @@ class LoanDisbursementController extends Controller
                 'disbursements' => $data,
                 'summary' => [
                     'count'        => $data->count(),
-                    'total_amount' => $total,
+                    'total_amount' => $data->sum('amount'),
                 ],
             ],
         ]);
@@ -88,9 +87,9 @@ class LoanDisbursementController extends Controller
         //
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    /* =========================================================
+     | REGISTRAR DESEMBOLSO + SALIDA DE CAJA
+     ========================================================= */
     public function store(Request $request)
     {
         $branchId = session('branch_id');
@@ -102,7 +101,6 @@ class LoanDisbursementController extends Controller
             ], 422);
         }
 
-        // 🔹 Quitamos branch_id y user_id del validate (los definimos nosotros)
         $data = $request->validate([
             'loan_id'           => 'required|exists:loans,id',
             'amount'            => 'required|numeric|min:0.01',
@@ -115,30 +113,22 @@ class LoanDisbursementController extends Controller
             'notes'             => 'nullable|string',
         ]);
 
-        // 🔹 Sobrescribimos branch_id y user_id
-        $data['branch_id'] = $branchId;
-
-        if (Auth::check()) {
-            $data['user_id'] = Auth::id();
-        }
-
-        // Código de desembolso
-        $data['disbursement_code'] = $this->generateDisbursementCode();
-
         DB::beginTransaction();
 
         try {
-            // Traemos el préstamo solo de la sucursal actual
+            /* ============================
+               PRÉSTAMO
+            ============================ */
             $loan = Loan::withSum('disbursements as total_disbursed', 'amount')
                 ->where('id', $data['loan_id'])
                 ->where('branch_id', $branchId)
+                ->lockForUpdate()
                 ->firstOrFail();
 
             if (! in_array($loan->status, ['approved', 'disbursed'])) {
                 return response()->json([
                     'status'  => 'error',
-                    'message' => 'Solo se pueden registrar desembolsos para préstamos en estado APROBADO o DESEMBOLSADO. ' .
-                        'Estado actual: ' . strtoupper($loan->status),
+                    'message' => 'El préstamo no permite desembolsos.',
                 ], 422);
             }
 
@@ -146,39 +136,95 @@ class LoanDisbursementController extends Controller
             $loanAmount       = (float) $loan->amount;
             $newAmount        = (float) $data['amount'];
 
-            // 1) Si ya está totalmente desembolsado, NO permitir
-            if ($alreadyDisbursed >= $loanAmount) {
-                return response()->json([
-                    'status'  => 'error',
-                    'message' => 'El préstamo ya se encuentra totalmente desembolsado.',
-                ], 422);
-            }
-
-            // 2) Evitar pasarse del monto
             if ($alreadyDisbursed + $newAmount > $loanAmount) {
                 return response()->json([
                     'status'  => 'error',
-                    'message' => 'El monto a desembolsar excede el monto del préstamo.',
+                    'message' => 'El monto excede el total del préstamo.',
                 ], 422);
             }
 
-            // Subir archivo si existe
+            /* ============================
+               CAJA ABIERTA
+            ============================ */
+            $cashBox = CashBox::where('branch_id', $branchId)
+                ->where('status', 'open')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $cashBox) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'No existe una caja abierta para realizar el desembolso.',
+                ], 422);
+            }
+
+            $totalIn = CashMovement::where('cash_box_id', $cashBox->id)
+                ->where('type', 'in')
+                ->sum('amount');
+
+            $totalOut = CashMovement::where('cash_box_id', $cashBox->id)
+                ->where('type', 'out')
+                ->sum('amount');
+
+            $available = $totalIn - $totalOut;
+
+            if ($newAmount > $available) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Saldo insuficiente en caja. Disponible: S/ ' . number_format($available, 2),
+                ], 422);
+            }
+
+            /* ============================
+               ARCHIVO
+            ============================ */
             if ($request->hasFile('receipt_file')) {
                 $data['receipt_file'] = $request->file('receipt_file')
                     ->store('disbursements', 'public');
             }
 
-            // Calcular saldo restante después de este desembolso
-            $remaining = $loanAmount - ($alreadyDisbursed + $newAmount);
-            $data['remaining_balance'] = round($remaining, 2);
+            /* ============================
+               CREAR DESEMBOLSO
+            ============================ */
+            $data['branch_id'] = $branchId;
+            $data['user_id']   = Auth::id();
+            $data['disbursement_code'] = $this->generateDisbursementCode();
 
-            // Crear desembolso
             $disbursement = LoanDisbursement::create($data);
 
-            // Si el desembolso está completado y el saldo queda en 0 => marcar préstamo como "disbursed"
-            if ($data['status'] === 'completed' && $remaining <= 0) {
+            /* ============================
+               MOVIMIENTO DE CAJA (SALIDA)
+            ============================ */
+            CashMovement::create([
+                'cash_box_id'     => $cashBox->id,
+                'branch_id'       => $branchId,
+                'type'            => 'out',
+                'concept'         => 'loan_disbursement',
+                'amount'          => $disbursement->amount,
+                'reference_table' => 'loan_disbursements',
+                'reference_id'    => $disbursement->id,
+                'user_id'     => Auth::id()
+            ]);
+
+            /* ============================
+               ESTADO DEL PRÉSTAMO
+            ============================ */
+            if ($alreadyDisbursed + $newAmount >= $loanAmount) {
+
+                // recalcular saldo desde cronograma
+                $remaining = LoanSchedule::where('loan_id', $loan->id)
+                    ->sum(DB::raw('payment - paid_amount'));
+
+                if ($remaining < 0) {
+                    $remaining = 0;
+                }
+
                 $loan->status = 'disbursed';
                 $loan->disbursement_date = $data['disbursement_date'];
+
+                // ⭐ saldo inicial correcto
+                $loan->current_balance = $remaining;
+
                 $loan->save();
             }
 
@@ -191,16 +237,18 @@ class LoanDisbursementController extends Controller
             ], 201);
         } catch (\Throwable $e) {
             DB::rollBack();
-            Log::error('Error registrando desembolso: ' . $e->getMessage());
+            Log::error('Error en desembolso: ' . $e->getMessage());
 
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Error al registrar el desembolso.',
-                'error'   => $e->getMessage(),
             ], 500);
         }
     }
 
+    /* =========================================================
+     | CÓDIGO DE DESEMBOLSO
+     ========================================================= */
     private function generateDisbursementCode()
     {
         $last = LoanDisbursement::orderBy('id', 'DESC')->first();

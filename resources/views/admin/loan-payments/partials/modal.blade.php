@@ -1,8 +1,8 @@
 {{-- Modal elegante para Pago de Préstamo (Bootstrap 4) --}}
 <div class="modal fade" id="paymentModal" tabindex="-1" role="dialog" aria-labelledby="paymentModalLabel"
     aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-        <div class="modal-content shadow-lg border-0 rounded-lg overflow-hidden">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+        <div class="modal-content shadow-xl border-0 rounded-xl overflow-hidden">
 
             {{-- HEADER --}}
             <div class="modal-header align-items-center"
@@ -85,7 +85,7 @@
                                 </div>
 
                                 {{-- Saldo luego del pago (referencial) --}}
-                              
+
 
 
                                 <hr>
@@ -134,20 +134,28 @@
 
                                 {{-- row 2: préstamo + monto --}}
                                 <div class="form-row">
-                                    <div class="form-group col-md-4">
+                                    <div class="form-group col-md-12">
                                         <label for="loan_id" class="small font-weight-bold text-secondary">
                                             PRÉSTAMO <span class="text-danger">*</span>
                                         </label>
-                                        <select id="loan_id" name="loan_id" class="form-control form-control-sm">
+                                        <select id="loan_id" name="loan_id"
+                                            class="form-control form-control-sm select2">
                                             <option value="">Seleccione préstamo</option>
                                             @isset($loans)
                                                 @foreach ($loans as $loan)
+                                                    @php
+                                                        $clientName = optional($loan->client)->full_name ?? '';
+                                                        $clientDoc = optional($loan->client)->document_number ?? '';
+                                                    @endphp
+
                                                     <option value="{{ $loan->id }}"
                                                         data-loan_code="{{ $loan->loan_code }}"
-                                                        data-client_name="{{ optional($loan->client)->full_name }}"
+                                                        data-client_name="{{ $clientName }}"
+                                                        data-client_document="{{ $clientDoc }}"
                                                         data-remaining_balance="{{ $loan->remaining_balance_calc ?? $loan->total_payable }}"
                                                         data-total_payable="{{ $loan->total_payable ?? 0 }}">
-                                                        {{ $loan->loan_code }} - {{ optional($loan->client)->full_name }}
+                                                        {{ $loan->loan_code }} -
+                                                        {{ $clientName }}{{ $clientDoc ? ' - ' . $clientDoc : '' }}
                                                     </option>
                                                 @endforeach
                                             @endisset
@@ -156,7 +164,7 @@
                                         <span class="invalid-feedback" id="loan_id-error"></span>
                                     </div>
 
-                                    <div class="form-group col-md-4">
+                                    <div class="form-group col-md-6">
                                         <label for="amount" class="small font-weight-bold text-secondary">
                                             MONTO PAGADO (S/) <span class="text-danger">*</span>
                                         </label>
@@ -165,7 +173,7 @@
                                         <span class="invalid-feedback" id="amount-error"></span>
                                     </div>
 
-                                    <div class="form-group col-md-4">
+                                    <div class="form-group col-md-6">
                                         <label for="payment_type" class="small font-weight-bold text-secondary">
                                             TIPO DE PAGO
                                         </label>
@@ -176,7 +184,51 @@
                                         </select>
                                         <span class="invalid-feedback" id="payment_type-error"></span>
                                     </div>
+
+
+
                                 </div>
+
+
+                                {{-- row: gasto adicional --}}
+                                <div class="form-row">
+                                    <div class="form-group col-md-4">
+                                        <label for="expense_amount" class="small font-weight-bold text-secondary">
+                                            GASTO ADICIONAL (S/)
+                                        </label>
+                                        <input type="number" step="0.01" class="form-control form-control-sm"
+                                            id="expense_amount" name="expense_amount" placeholder="0.00">
+                                        <span class="invalid-feedback" id="expense_amount-error"></span>
+                                        <small class="text-muted">Ej: pasaje, comisión cajero, trámite.</small>
+                                    </div>
+
+                                    <div class="form-group col-md-4">
+                                        <label for="expense_type" class="small font-weight-bold text-secondary">
+                                            TIPO DE GASTO
+                                        </label>
+                                        <select id="expense_type" name="expense_type"
+                                            class="form-control form-control-sm">
+                                            <option value="">Seleccione</option>
+                                            <option value="transport">Pasaje / movilidad</option>
+                                            <option value="atm_fee">Comisión cajero</option>
+                                            <option value="procedure">Trámite</option>
+                                            <option value="other">Otro</option>
+                                        </select>
+                                        <span class="invalid-feedback" id="expense_type-error"></span>
+                                    </div>
+
+                                    <div class="form-group col-md-4">
+                                        <label for="expense_description"
+                                            class="small font-weight-bold text-secondary">
+                                            DETALLE (opcional)
+                                        </label>
+                                        <input type="text" class="form-control form-control-sm"
+                                            id="expense_description" name="expense_description"
+                                            placeholder="Ej: pasaje ida/vuelta, comisión BCP...">
+                                        <span class="invalid-feedback" id="expense_description-error"></span>
+                                    </div>
+                                </div>
+
 
                                 {{-- row 3: desglose capital / interés / mora --}}
                                 <div class="form-row">
@@ -235,6 +287,29 @@
                                     </div>
                                 </div>
 
+                                {{-- row X: efectivo (pagó con / vuelto) --}}
+                                <div class="form-row" id="cashBox" style="display:none;">
+                                    <div class="form-group col-md-6">
+                                        <label for="cash_received" class="small font-weight-bold text-secondary">
+                                            PAGÓ CON (S/) <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="number" step="0.01" class="form-control form-control-sm"
+                                            id="cash_received" name="cash_received" placeholder="0.00">
+                                        <span class="invalid-feedback" id="cash_received-error"></span>
+                                        <small class="text-muted">Solo si el método es efectivo.</small>
+                                    </div>
+
+                                    <div class="form-group col-md-6">
+                                        <label for="cash_change" class="small font-weight-bold text-secondary">
+                                            VUELTO (S/)
+                                        </label>
+                                        <input type="number" step="0.01" class="form-control form-control-sm"
+                                            id="cash_change" name="cash_change" placeholder="0.00" readonly>
+                                        <span class="invalid-feedback" id="cash_change-error"></span>
+                                    </div>
+                                </div>
+
+
                                 {{-- row 5: comprobante (número + archivo) --}}
                                 <div class="form-row">
                                     <div class="form-group col-md-6">
@@ -273,6 +348,47 @@
                                         <span class="invalid-feedback" id="remaining_balance-error"></span>
                                     </div>
                                 </div>
+
+                                <hr>
+
+                                <div class="form-row">
+                                    <div class="form-group col-md-12">
+                                        <label class="small font-weight-bold text-secondary">
+                                            CRONOGRAMA DE CUOTAS
+                                            <small class="text-muted d-block">Marca lo que deseas pagar (las pagadas
+                                                estarán bloqueadas)</small>
+                                        </label>
+
+                                        <div class="table-responsive"
+                                            style="max-height:240px; overflow:auto; background:#fff; border-radius:8px;">
+                                            <table class="table table-sm table-hover mb-0">
+                                                <thead class="thead-light">
+                                                    <tr class="text-center">
+                                                        <th style="width:50px;">Pagar</th>
+                                                        <th>#</th>
+                                                        <th>Vence</th>
+                                                        <th>Cuota</th>
+                                                        <th>Pagado</th>
+                                                        <th>Falta</th>
+                                                        <th>Estado</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="scheduleRows">
+                                                    <tr>
+                                                        <td colspan="7" class="text-center text-muted py-3">
+                                                            Seleccione un préstamo…</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <small class="text-muted d-block mt-2">
+                                            Tip: si marcas cuotas, el monto se autocompleta con el total “Falta”
+                                            seleccionado.
+                                        </small>
+                                    </div>
+                                </div>
+
 
                                 {{-- row 7: notas --}}
                                 <div class="form-row">

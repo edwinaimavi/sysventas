@@ -77,14 +77,6 @@
             consultarDocumento: "{{ route('admin.clients.consultarDniRuc', ['dniruc' => 'DOC_PLACEHOLDER']) }}",
         }
 
-        /* function previewImage(event,querySelector){
-            let input = event.target;
-            let imgPreview = document.querySelector(querySelector);
-            if (!input.files.length) return
-            let file = input.files[0];
-            let objectURL = URL.createObjectURL(file);
-            imgPreview.src = objectURL;
-        } */
     </script>
     @vite(['resources/js/pages/client.js']) 
 @endpush

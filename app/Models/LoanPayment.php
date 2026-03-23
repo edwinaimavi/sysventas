@@ -7,8 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class LoanPayment extends Model
 {
+    
     /** @use HasFactory<\Database\Factories\LoanPaymentFactory> */
     use HasFactory;
+
     protected $fillable = [
         'loan_id',
         'branch_id',
@@ -27,6 +29,8 @@ class LoanPayment extends Model
         'status',
         'remaining_balance',
         'notes',
+        'cash_received',
+        'cash_change',
     ];
 
     // 👇 AÑADE ESTO
@@ -48,5 +52,10 @@ class LoanPayment extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function expense()
+    {
+        return $this->hasOne(LoanPaymentExpense::class, 'loan_payment_id');
     }
 }

@@ -128,20 +128,24 @@
 
                                 {{-- row 2: cliente + garante --}}
                                 <div class="form-row">
-                                    <div class="form-group col-md-6">
+                                    <div class="form-group col-md-12">
                                         <label for="client_id" class="small font-weight-bold text-secondary">
                                             CLIENTE SOLICITANTE <span class="text-danger">*</span>
                                         </label>
                                         <select id="client_id" name="client_id" class="form-control form-control-sm">
                                             <option value="">Seleccione cliente</option>
                                             @foreach ($clients as $client)
-                                                <option value="{{ $client->id }}">{{ $client->full_name }}</option>
+                                                <option value="{{ $client->id }}"
+                                                    data-document="{{ $client->document_number }}"
+                                                    data-name="{{ $client->full_name }}">
+                                                    {{ $client->full_name }} - {{ $client->document_number }}
+                                                </option>
                                             @endforeach
                                         </select>
                                         <span class="invalid-feedback" id="client_id-error"></span>
                                     </div>
 
-                                    <div class="form-group col-md-6">
+                                    <div class="form-group col-md-12">
                                         <label for="guarantor_id" class="small font-weight-bold text-secondary">
                                             GARANTE (opcional)
                                         </label>

@@ -51,17 +51,23 @@ class BranchController extends Controller
      */
     public function store(Request $request)
     {
-        // ✅ Validar los campos
         $data = $request->validate([
-            'code'   => 'nullable|string|max:10',
-            'name'   => 'required|string|min:3|max:100',
-            'address' => 'required|string|min:5|max:150',
-            'phone'  => 'nullable|string|min:6|max:20',
-            'email'  => 'required|email|unique:branches,email',
-            'manager_user_id'  => 'nullable|integer|exists:users,id',
-            'is_active' => 'required|in:0,1',
+            'name'            => ['required', 'string', 'max:255'],
+            'code'            => ['nullable', 'string', 'max:50'],
+            'address'         => ['required', 'string', 'max:255'],
+            'phone'           => ['required', 'string', 'max:30'],
+            'email'           => ['required', 'email', 'max:255', 'unique:branches,email'],
+            'manager_user_id' => ['nullable', 'exists:users,id'],
+            'is_active'       => ['required', 'in:0,1'],
+        ], [
+            'name.required'    => 'Falta llenar el nombre de la sucursal.',
+            'address.required' => 'Falta llenar la dirección.',
+            'phone.required'   => 'Falta llenar el teléfono.',
+            'email.required'   => 'Falta llenar el email.',
+            'email.email'      => 'El email no tiene un formato válido.',
+            'email.unique'     => 'Ese email ya está registrado en otra sucursal.',
+            'is_active.required' => 'Debes seleccionar el estado (Activo/Inactivo).',
         ]);
-
         // ✅ Guardar en la base de datos
         $branch = Branch::create([
             'code'     => $data['code'] ?? null,

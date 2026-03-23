@@ -17,26 +17,108 @@ document.addEventListener("DOMContentLoaded", function () {
         $('#client_img_preview').data('default-avatar') ||
         'https://www.shutterstock.com/image-vector/default-avatar-profile-icon-social-600nw-1906669723.jpg';
 
+    // ======================================================
+    // EVENTO CAMBIO IMAGEN CLIENTE
+    // ======================================================
+    $('#client_image').on('change', function (event) {
 
+        const input = event.target;
+        const preview = document.getElementById('client_img_preview');
+
+        if (!input.files || !input.files[0]) {
+            return;
+        }
+
+        const file = input.files[0];
+
+        if (!file.type.startsWith('image/')) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Archivo inválido',
+                text: 'Debe seleccionar una imagen válida.',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000
+            });
+
+            input.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+            preview.src = e.target.result;
+        };
+
+        reader.readAsDataURL(file);
+    });
     //GUARDAR / ACTUALIZAR 
+
+    // ======================================================
+    // GUARDAR / ACTUALIZAR CLIENTE (ANTI DOBLE CLICK)
+    // ======================================================
+    let isSubmittingClient = false;
 
     $('#clientForm').on('submit', function (e) {
 
         e.preventDefault();
-        divLoading.style.display = "flex"; // Mostrar el loading
-        const $form = $(this);
-        const id = $form.attr('data-id');
 
+        // 🚫 Si ya se está enviando, no permitir otro submit
+        if (isSubmittingClient) {
+            return;
+        }
+
+        isSubmittingClient = true;
+
+        const $form = $(this);
+        const $btn = $('#btnSaveClient');
+
+        // 🔒 Desactivar botón inmediatamente
+        $btn.prop('disabled', true);
+        $btn.html('<i class="fas fa-spinner fa-spin mr-1"></i> Guardando...');
+
+        divLoading.style.display = "flex";
+
+        // Validar edad antes de enviar
+        const fechaNacimiento = $('#birth_date').val();
+
+        if (fechaNacimiento && !esMayorDeEdad(fechaNacimiento)) {
+
+            divLoading.style.display = "none";
+            isSubmittingClient = false;
+            $btn.prop('disabled', false);
+            $btn.html('<i class="fas fa-save mr-1"></i> Guardar Cliente');
+
+            $('#birth_date').addClass('is-invalid');
+            $('#birth_date-error').text('El cliente debe ser mayor de 18 años.');
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'Edad no permitida',
+                text: 'El cliente debe tener al menos 18 años.',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3500
+            });
+
+            return;
+        }
+
+        const id = $form.attr('data-id');
         let url = '';
         let type = '';
-        //importante para subir imagenes/ eliminar el serializador de datos
+
         const formData = new FormData(this);
+
         if (id) {
             url = "/admin/clients/" + id;
             type = 'POST';
             formData.append('_method', 'PUT');
         } else {
-            url = window.routes.storeClient; // ahora siempre existirá (o fallback)
+            url = window.routes.storeClient;
             type = 'POST';
         }
 
@@ -44,50 +126,67 @@ document.addEventListener("DOMContentLoaded", function () {
             url: url,
             type: type,
             data: formData,
-            processData: false, // necesario para enviar FormData
-            contentType: false, // necesario para enviar FormData
+            processData: false,
+            contentType: false,
+
             success: function (response) {
-                divLoading.style.display = "none"; // Ocultar el loading
+
+                divLoading.style.display = "none";
+                isSubmittingClient = false;
+
+                $btn.prop('disabled', false);
+                $btn.html('<i class="fas fa-save mr-1"></i> Guardar Cliente');
+
                 $('#clientModal').modal('hide');
                 tableClient.ajax.reload(null, false);
+
                 Swal.fire({
                     title: response.message,
-                    icon: "success", // o "error", según el contexto
+                    icon: "success",
                     toast: true,
-                    position: "top-end", // puedes cambiar a "bottom-end", "top-start", etc.
+                    position: "top-end",
                     showConfirmButton: false,
-                    timer: 3000, // duración en milisegundos
-                    timerProgressBar: true,
-                    didOpen: (toast) => {
-                        toast.addEventListener('mouseenter', Swal.stopTimer);
-                        toast.addEventListener('mouseleave', Swal.resumeTimer);
-                    }
+                    timer: 3000,
+                    timerProgressBar: true
                 });
-
             },
+
             error: function (xhr) {
+
                 divLoading.style.display = "none";
+                isSubmittingClient = false;
+
+                $btn.prop('disabled', false);
+                $btn.html('<i class="fas fa-save mr-1"></i> Guardar Cliente');
+
                 if (xhr.status === 422) {
+
                     const errors = xhr.responseJSON.errors || {};
-                    // limpiar errores anteriores
+
                     $('.is-invalid').removeClass('is-invalid');
                     $('.invalid-feedback').text('');
+
                     $.each(errors, function (key, messages) {
                         const input = $(`#${key}`);
                         input.addClass('is-invalid');
                         $(`#${key}-error`).text(messages[0]);
                     });
+
                 } else {
-                    console.error('Error al guardar cliente', xhr);
+
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Ocurrió un error inesperado',
-                        toast: true, position: 'top-end', showConfirmButton: false, timer: 3500
+                        text: xhr.responseJSON?.message ?? 'Ocurrió un error inesperado',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3500
                     });
                 }
             }
         });
+
     });
 
 
@@ -397,19 +496,41 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     // FUNCION PARA GUARDAR O ACTUALIZAR CONTACTO
+    // ======================================================
+    // GUARDAR / ACTUALIZAR CONTACTO (ANTI DOBLE CLICK)
+    // ======================================================
+    let isSubmittingContact = false;
 
     $('#contactForm').on('submit', function (e) {
+
         e.preventDefault();
 
+        // 🚫 Evitar doble submit
+        if (isSubmittingContact) {
+            return;
+        }
+
+        isSubmittingContact = true;
+
         const $form = $(this);
+        const $btn = $('#contactFormModal button[type="submit"]');
         const contactId = $form.attr('data-id');
 
-        // Aseguramos que tenga client_id
+        // 🔒 Bloquear botón inmediatamente
+        $btn.prop('disabled', true);
+        $btn.html('<i class="fas fa-spinner fa-spin mr-1"></i> Guardando...');
+
+        divLoading && (divLoading.style.display = "flex");
+
+        // Asegurar client_id
         if (!$('#contact_client_id').val() && currentClientId) {
             $('#contact_client_id').val(currentClientId);
         }
 
         if (!$('#contact_client_id').val()) {
+
+            resetContactSubmitState();
+
             Swal.fire({
                 icon: 'info',
                 title: 'Sin cliente',
@@ -419,12 +540,12 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         let url, method;
-        let dataToSend = $form.serialize(); // incluye checkbox si está checked
+        let dataToSend = $form.serialize();
 
         if (contactId) {
             url = `/admin/client-contacts/${contactId}`;
             method = 'POST';
-            dataToSend += '&_method=PUT'; // para que el controlador entre a update
+            dataToSend += '&_method=PUT';
         } else {
             url = '/admin/client-contacts';
             method = 'POST';
@@ -434,7 +555,11 @@ document.addEventListener("DOMContentLoaded", function () {
             url: url,
             type: method,
             data: dataToSend,
+
             success: function (response) {
+
+                resetContactSubmitState();
+
                 $('#contactFormModal').modal('hide');
 
                 if (contactsTable) {
@@ -451,8 +576,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     timerProgressBar: true
                 });
             },
+
             error: function (xhr) {
+
+                resetContactSubmitState();
+
                 if (xhr.status === 422) {
+
                     const errors = xhr.responseJSON.errors || {};
 
                     $form.find('.is-invalid').removeClass('is-invalid');
@@ -463,19 +593,32 @@ document.addEventListener("DOMContentLoaded", function () {
                         input.addClass('is-invalid');
                         $form.find(`#${field}-error`).text(messages[0]);
                     });
+
                 } else {
-                    console.error(xhr);
+
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: xhr.responseJSON && xhr.responseJSON.message
-                            ? xhr.responseJSON.message
-                            : 'Ocurrió un error al guardar el contacto.'
+                        text: xhr.responseJSON?.message ?? 'Ocurrió un error al guardar el contacto.'
                     });
                 }
             }
         });
+
     });
+
+    // 🔁 Función para restaurar estado del botón
+    function resetContactSubmitState() {
+
+        isSubmittingContact = false;
+
+        const $btn = $('#contactFormModal button[type="submit"]');
+
+        $btn.prop('disabled', false);
+        $btn.html('<i class="fas fa-save mr-1"></i> Guardar');
+
+        divLoading && (divLoading.style.display = "none");
+    }
 
 
     // ======================================================
@@ -687,8 +830,23 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         // Si el tipo está vacío o es CE, tampoco consultamos
-        if (docType !== 'DNI' && docType !== 'RUC') {
-            console.log('Tipo de documento no válido para consulta automática:', docType);
+        // Si no ha seleccionado tipo de documento
+        if (!docType) {
+
+            $documentType.addClass('is-invalid');
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'Tipo de documento requerido',
+                text: 'Debe seleccionar el tipo de documento antes de ingresar el número.',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3500,
+                timerProgressBar: true
+            });
+
+            $documentType.focus();
             return;
         }
 
@@ -776,6 +934,61 @@ document.addEventListener("DOMContentLoaded", function () {
     // Al salir del input (blur)
     $documentNumber.on('blur', function () {
         buscarDocumentoApi();
+    });
+
+    $documentType.on('change', function () {
+        if ($(this).val()) {
+            $(this).removeClass('is-invalid');
+        }
+    });
+
+    // ======================================================
+    // VALIDAR MAYORÍA DE EDAD (18+)
+    // ======================================================
+    function esMayorDeEdad(fechaNacimiento) {
+
+        if (!fechaNacimiento) return true; // si está vacío no validamos aquí
+
+        const hoy = new Date();
+        const nacimiento = new Date(fechaNacimiento);
+
+        let edad = hoy.getFullYear() - nacimiento.getFullYear();
+        const mes = hoy.getMonth() - nacimiento.getMonth();
+
+        if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+            edad--;
+        }
+
+        return edad >= 18;
+    }
+
+    // Cuando cambie la fecha
+    $('#birth_date').on('change', function () {
+
+        const fecha = $(this).val();
+
+        if (fecha && !esMayorDeEdad(fecha)) {
+
+            $(this).addClass('is-invalid');
+            $('#birth_date-error').text('El cliente debe ser mayor de 18 años.');
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'Edad no permitida',
+                text: 'El cliente debe tener al menos 18 años.',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3500,
+                timerProgressBar: true
+            });
+
+            $(this).val('');
+            $(this).focus();
+        } else {
+            $(this).removeClass('is-invalid');
+            $('#birth_date-error').text('');
+        }
     });
 
 

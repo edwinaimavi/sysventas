@@ -2,6 +2,23 @@ var divLoading = document.getElementById('divLoading');
 let tableLoanPayments;
 
 document.addEventListener("DOMContentLoaded", function () {
+
+
+    // ============================
+    //  IMPRIMIR TICKET (helper)
+    // ============================
+    function openReceipt(paymentId) {
+        if (!paymentId) return;
+
+        // Si tienes route en window.routes, úsala, si no, fallback:
+        let url = (window.routes && window.routes.paymentReceipt)
+            ? window.routes.paymentReceipt.replace(':id', paymentId)
+            : `/admin/loan-payments/${paymentId}/receipt`;
+
+        // Abrir en nueva ventana/pestaña para imprimir
+        window.open(url, '_blank', 'width=380,height=720');
+    }
+
     // CSRF token para AJAX
     $.ajaxSetup({
         headers: {
@@ -60,14 +77,15 @@ document.addEventListener("DOMContentLoaded", function () {
         e.preventDefault();
 
         const $form = $(this);
-        const id = $form.attr('data-id'); // para futuro EDIT
+        const id = $form.attr('data-id');
 
-        let url = window.routes.storePayment;   // route('loan-payments.store')
+        let url = window.routes.storePayment;
         let method = 'POST';
 
-        const formData = new FormData(this); // porque hay archivo
+        const formData = new FormData(this);
+
         // ============================
-        //  VALIDACIÓN TIPO vs MONTO
+        //  VALIDACIONES
         // ============================
         const base = parseFloat($form.data('base-balance') || 0);
         const amount = parseFloat($('#amount').val() || 0);
@@ -82,30 +100,38 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
+        // ✅ NO permitir pagar más que el saldo
+        if (base > 0 && amount > base + 0.009) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Monto inválido',
+                text: 'El monto no puede ser mayor al saldo pendiente actual.'
+            });
+            return;
+        }
+
+        // ✅ Reglas tipo vs monto (las que ya tenías)
         if (base > 0 && amount > 0) {
             const diff = Math.abs(base - amount);
 
-            // pago parcial cubriendo el 100% del saldo
             if (type === 'partial' && diff <= 0.009) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Tipo de pago incorrecto',
-                    text: 'El monto ingresado cubre el 100% del saldo pendiente. Debes marcar el pago como "Pago total".'
+                    text: 'El monto cubre el 100% del saldo. Marca "Pago total".'
                 });
                 return;
             }
 
-            // pago total que NO cubre todo el saldo
             if (type === 'full' && diff > 0.009) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Monto insuficiente para pago total',
-                    text: 'Para un pago total, el monto debe ser igual al saldo pendiente actual.'
+                    text: 'Para pago total, el monto debe ser igual al saldo pendiente actual.'
                 });
                 return;
             }
         }
-
 
         if (id) {
             url = `/admin/loan-payments/${id}`;
@@ -139,13 +165,39 @@ document.addEventListener("DOMContentLoaded", function () {
                     timer: 3000,
                     timerProgressBar: true
                 });
+
+                // ============================
+                // ✅ ABRIR + IMPRIMIR TICKET
+                // ============================
+                // Intenta leer el ID del pago desde varias formas posibles
+                let paymentId = null;
+
+                // Caso normal: store retorna { data: { id: ... } }
+                if (response && response.data) {
+                    paymentId = response.data.id || response.data.payment_id || null;
+                }
+
+                // Fallbacks por si cambiaste response en otro lado
+                if (!paymentId) paymentId = response.id || response.payment_id || null;
+
+                console.log('PAYMENT ID DETECTED =>', paymentId);
+
+                openReceipt(paymentId);
             },
             error: function (xhr) {
                 if (divLoading) divLoading.style.display = 'none';
 
+                if (xhr.status === 409 && xhr.responseJSON?.code === 'NO_CASHBOX_OPEN') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Caja cerrada',
+                        text: xhr.responseJSON.message,
+                    });
+                    return;
+                }
+
                 if (xhr.status === 422) {
                     const errors = xhr.responseJSON.errors || {};
-
                     $form.find('.is-invalid').removeClass('is-invalid');
                     $form.find('.invalid-feedback').text('');
 
@@ -156,16 +208,13 @@ document.addEventListener("DOMContentLoaded", function () {
                             $('#' + field + '-error').text(messages[0]);
                         }
                     });
-                } else {
-                    console.error('Error al guardar pago', xhr);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: xhr.responseJSON && xhr.responseJSON.message
-                            ? xhr.responseJSON.message
-                            : 'Ocurrió un error al guardar el pago.'
-                    });
                 }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: xhr.responseJSON?.message || 'Ocurrió un error al guardar el pago.'
+                });
+
             }
         });
     });
@@ -175,6 +224,13 @@ document.addEventListener("DOMContentLoaded", function () {
     //   LIMPIAR MODAL AL CERRAR
     // ============================
     $('#paymentModal').on('hidden.bs.modal', function () {
+        $('#cashBox').hide();
+        $('#cash_received').val('');
+        $('#cash_change').val('');
+        $('#expense_amount').val('');
+        $('#expense_type').val('');
+        $('#expense_description').val('');
+
         const $form = $('#paymentForm');
 
         if ($form.length && $form[0]) {
@@ -230,6 +286,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         $('#left_branch_name').text(branchName);
         $('#left_user_name').text(userName);
+        toggleCashBox();
     });
 
 
@@ -239,43 +296,63 @@ document.addEventListener("DOMContentLoaded", function () {
     // Cuando cambia el préstamo seleccionado
     $('#loan_id').on('change', function () {
         const $opt = $(this).find('option:selected');
+        const loanId = $(this).val();
+
+        loadSchedules(loanId);
 
         const loanCode = $opt.data('loan_code') || '—';
         const clientName = $opt.data('client_name') || '—';
-        const totalPayable = parseFloat($opt.data('total_payable') || 0);
-        const remainingDb = parseFloat($opt.data('remaining_balance') || 0);
 
-        // saldo pendiente actual desde BD
-        const baseBalance = remainingDb > 0 ? remainingDb : totalPayable;
-
-        // Guardamos el saldo base para cálculos
-        $('#paymentForm').data('base-balance', baseBalance);
-
-        // Resumen izquierdo
+        // Resumen básico (rápido)
         $('#left_loan_code').text(loanCode);
         $('#left_client_name').text(clientName);
-        $('#left_total_payable').text('S/ ' + totalPayable.toFixed(2));
 
-        // ⭐ Saldo pendiente actual (antes de este pago)
-        $('#left_current_balance').text('S/ ' + baseBalance.toFixed(2));
+        if (!loanId) return;
 
-        // ⭐ Al inicio, el saldo luego del pago es igual (todavía no escribe monto)
-        $('#left_remaining_balance').text('S/ ' + baseBalance.toFixed(2));
-        $('#remaining_balance').val(baseBalance.toFixed(2));
+        const url = window.routes.paymentBalance.replace(':id', loanId);
 
-        // Tipo de pago
-        const paymentType = $('#payment_type').val();
+        if (divLoading) divLoading.style.display = 'flex';
 
-        if (paymentType === 'full') {
-            // Pago total -> monto = saldo pendiente, saldo luego del pago = 0
-            $('#amount').val(baseBalance.toFixed(2)).prop('readonly', true);
-            $('#left_remaining_balance').text('S/ 0.00');
-            $('#remaining_balance').val('0.00');
-        } else {
-            // Pago parcial -> usuario escribe monto
-            $('#amount').val('').prop('readonly', false);
-        }
+        $.get(url)
+            .done(function (resp) {
+                if (divLoading) divLoading.style.display = 'none';
+
+                if (!resp || resp.status !== 'success') return;
+
+                const totalPayable = parseFloat(resp.data.total_payable || 0);
+                const baseBalance = parseFloat(resp.data.remaining_balance || 0);
+
+                // Guardamos saldo base real
+                $('#paymentForm').data('base-balance', baseBalance);
+
+                $('#left_total_payable').text('S/ ' + totalPayable.toFixed(2));
+                $('#left_current_balance').text('S/ ' + baseBalance.toFixed(2));
+
+                // Inicialmente, remaining = base
+                $('#left_remaining_balance').text('S/ ' + baseBalance.toFixed(2));
+                $('#remaining_balance').val(baseBalance.toFixed(2));
+
+                // respetar tipo de pago actual
+                const paymentType = $('#payment_type').val();
+                if (paymentType === 'full') {
+                    $('#amount').val(baseBalance.toFixed(2)).prop('readonly', true);
+                    $('#left_remaining_balance').text('S/ 0.00');
+                    $('#remaining_balance').val('0.00');
+                } else {
+                    $('#amount').val('').prop('readonly', false);
+                }
+            })
+
+
+
+            .fail(function () {
+                if (divLoading) divLoading.style.display = 'none';
+                Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo obtener el saldo actual del préstamo.' });
+            });
+
+        /* loadSchedules(loanId); */
     });
+
 
 
     // Cuando escribe en MONTO PAGADO (S/)
@@ -497,6 +574,26 @@ document.addEventListener("DOMContentLoaded", function () {
         // === NOTAS ===
         $('#vp_notes').text($btn.data('notes') || '—');
 
+        // ============================
+        //   NUEVO: CUOTAS + GASTO
+        // ============================
+
+        // cuotas pagadas ese día (puede venir "1,2,3" o "")
+        const instStr = ($btn.data('installments') || '').toString().trim();
+        if (instStr) {
+            // Si pagó varias cuotas, mostramos "1,2,3"
+            $('#vp_installment_number').text(instStr);
+        } else {
+            $('#vp_installment_number').text('—');
+        }
+
+        // gasto adicional
+        $('#vp_additional_expense').text('S/ ' + parseFloat($btn.data('expense_amount') || 0).toFixed(2));
+
+        // (opcional) mostrar tipo/desc en notas o en un campo extra si lo agregas en el modal
+        // console.log($btn.data('expense_type'), $btn.data('expense_description'));
+
+
         // Mostrar modal
         $('#viewPaymentModal').modal('show');
     });
@@ -555,6 +652,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         if (tableLoanPayments) {
                             tableLoanPayments.ajax.reload(null, false);
+                            // limpiar selección y refrescar UI para siguiente pago
+                            $('#loan_id').val(null).trigger('change');
+                            $('#amount').val('').prop('readonly', false);
+                            $('#remaining_balance').val('');
+                            $('#paymentForm').removeData('base-balance');
+
                         }
 
                         Swal.fire({
@@ -586,4 +689,253 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    // ============================
+    //   IMPRIMIR DESDE ACCIONES
+    // ============================
+    // ============================
+    //   IMPRIMIR TICKET (FULLSCREEN)
+    // ============================
+    $(document).on('click', '.printPayment', function () {
+        const id = $(this).data('id');
+        if (!id) return;
+
+        let url = (window.routes && window.routes.paymentReceipt)
+            ? window.routes.paymentReceipt.replace(':id', id)
+            : `/admin/loan-payments/${id}/receipt`;
+
+        const w = screen.availWidth;
+        const h = screen.availHeight;
+
+        const printWindow = window.open(
+            url,
+            '_blank',
+            `toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=${w},height=${h},top=0,left=0`
+        );
+
+        if (printWindow) {
+            printWindow.focus();
+        }
+    });
+
+    function initLoanSelect2() {
+        const $loan = $('#loan_id');
+        const $modal = $('#paymentModal');
+        if (!$loan.length || !$modal.length) return;
+
+        // evitar doble init
+        if ($loan.hasClass('select2-hidden-accessible')) {
+            $loan.select2('destroy');
+        }
+
+        $loan.select2({
+            theme: 'bootstrap4',
+            width: '100%',
+            dropdownParent: $modal, // clave para modal
+            placeholder: 'Buscar por código, nombre o DNI...',
+            allowClear: true,
+            /* dropdownAutoWidth: false */
+        });
+    }
+
+    // ✅ inicializa cuando el modal ya está visible (no show, sino shown)
+    $('#paymentModal').on('shown.bs.modal', function () {
+        initLoanSelect2();
+
+        // ✅ traer préstamos actualizados (ya no saldrán los finalizados)
+        refreshLoanOptions().then(function () {
+            // ✅ dejarlo limpio al abrir
+            $('#loan_id').val(null).trigger('change');
+        });
+    });
+
+    // ✅ (opcional) destruir al cerrar
+    $('#paymentModal').on('hidden.bs.modal', function () {
+
+
+        // ✅ limpiar cronograma visual sí o sí
+        $('#scheduleRows').html(`
+        <tr>
+            <td colspan="7" class="text-center text-muted py-3">
+                Seleccione un préstamo…
+            </td>
+        </tr>
+    `);
+
+        // (opcional) resetear también amount por si quedó autocompletado por checks
+        $('#amount').val('');
+        const $loan = $('#loan_id');
+        if ($loan.hasClass('select2-hidden-accessible')) {
+            $loan.select2('destroy');
+        }
+    });
+
+    function toggleCashBox() {
+        const method = ($('#method').val() || '').toLowerCase();
+
+        if (method === 'cash') {
+            $('#cashBox').show();
+            $('#cash_received').prop('required', true);
+            calcCashChange();
+        } else {
+            $('#cashBox').hide();
+            $('#cash_received').prop('required', false).val('');
+            $('#cash_change').val('');
+        }
+    }
+
+    function calcCashChange() {
+        const method = ($('#method').val() || '').toLowerCase();
+        if (method !== 'cash') return;
+
+        const amount = parseFloat($('#amount').val() || 0); // cuota (o suma de cuotas)
+        const exp = parseFloat($('#expense_amount').val() || 0); // otros gastos
+        const totalToCollect = amount + exp;
+
+        const received = parseFloat($('#cash_received').val() || 0);
+
+        let change = received - totalToCollect;
+        if (change < 0) change = 0;
+
+        $('#cash_change').val(change.toFixed(2));
+    }
+
+
+    $('#method').on('change', toggleCashBox);
+    $('#cash_received').on('input change', calcCashChange);
+
+    // cuando cambia monto, recalcular vuelto también
+    $('#amount').on('input change', function () {
+        // tu lógica actual...
+        calcCashChange();
+    });
+
+    $('#expense_amount').on('input change', calcCashChange);
+
+
+    function money(n) { return 'S/ ' + parseFloat(n || 0).toFixed(2); }
+
+    function badgeStatus(st) {
+        st = (st || '').toLowerCase();
+        if (st === 'paid') return '<span class="badge badge-success">Pagada</span>';
+        if (st === 'partial') return '<span class="badge badge-warning">Parcial</span>';
+        return '<span class="badge badge-secondary">Pendiente</span>';
+    }
+
+    function loadSchedules(loanId) {
+        if (!loanId || !window.routes.loanSchedulesByLoan) {
+            $('#scheduleRows').html('<tr><td colspan="7" class="text-center text-muted py-3">Seleccione un préstamo…</td></tr>');
+            return;
+        }
+
+        const url = window.routes.loanSchedulesByLoan.replace(':id', loanId);
+
+        $.get(url).done(function (resp) {
+            if (!resp || resp.status !== 'success') {
+                $('#scheduleRows').html('<tr><td colspan="7" class="text-center text-danger py-3">No se pudo cargar el cronograma.</td></tr>');
+                return;
+            }
+
+            const rows = resp.data || [];
+            if (!rows.length) {
+                $('#scheduleRows').html('<tr><td colspan="7" class="text-center text-muted py-3">Este préstamo no tiene cronograma.</td></tr>');
+                return;
+            }
+
+            let html = '';
+            rows.forEach(r => {
+                const isPaid = (r.status === 'paid') || (parseFloat(r.remaining) <= 0.009);
+                const disabled = isPaid ? 'disabled' : '';
+                const checked = isPaid ? 'checked' : '';
+
+                html += `
+        <tr class="text-center">
+          <td>
+            <input type="checkbox"
+              class="sch-check"
+              data-remaining="${r.remaining}"
+              ${checked} ${disabled}
+            >
+          </td>
+          <td>${r.installment_no}</td>
+          <td>${r.due_date}</td>
+          <td>${money(r.payment)}</td>
+          <td>${money(r.paid_amount)}</td>
+          <td><strong>${money(r.remaining)}</strong></td>
+          <td>${badgeStatus(r.status)}</td>
+        </tr>
+      `;
+            });
+
+            $('#scheduleRows').html(html);
+
+            // Cuando marcas checks, recalculamos "amount" (solo si payment_type=partial)
+            recalcAmountFromChecks();
+        }).fail(function () {
+            $('#scheduleRows').html('<tr><td colspan="7" class="text-center text-danger py-3">Error cargando cronograma.</td></tr>');
+        });
+    }
+
+    function recalcAmountFromChecks() {
+        const type = $('#payment_type').val();
+        if (type === 'full') return; // full lo controlas con saldo total
+
+        let sum = 0;
+        $('.sch-check:checked:not(:disabled)').each(function () {
+            sum += parseFloat($(this).data('remaining') || 0);
+        });
+
+        // si marcaron algo, autocompleta amount
+        if (sum > 0.009) {
+            $('#amount').val(sum.toFixed(2)).trigger('change');
+        }
+    }
+
+    // evento: al cambiar checks
+    $(document).on('change', '.sch-check', function () {
+        recalcAmountFromChecks();
+    });
+
+
+
+    function refreshLoanOptions() {
+        const $loan = $('#loan_id');
+
+        // limpia opciones, deja placeholder
+        $loan.empty().append('<option value="">Seleccione préstamo</option>');
+
+        return $.get(window.routes.loansAvailable).done(function (resp) {
+            if (!resp || resp.status !== 'success') return;
+
+            resp.data.forEach(l => {
+                const text = `${l.loan_code} - ${l.client_name}${l.client_document ? ' - ' + l.client_document : ''}`;
+                const opt = new Option(text, l.id, false, false);
+
+                $(opt).attr('data-loan_code', l.loan_code);
+                $(opt).attr('data-client_name', l.client_name);
+                $(opt).attr('data-client_document', l.client_document);
+                $(opt).attr('data-remaining_balance', l.remaining_balance);
+                $(opt).attr('data-total_payable', l.total_payable);
+
+                $loan.append(opt);
+            });
+
+            // refresca select2 si está activo
+            if ($loan.hasClass('select2-hidden-accessible')) {
+                $loan.trigger('change.select2');
+            }
+        });
+    }
+
+
+
+});
+
+// ✅ Evita que Select2 cierre el modal por propagación de eventos
+$(document).on('select2:opening select2:open select2:closing select2:close', '#loan_id', function (e) {
+    e.stopPropagation();
+});
+
+// También por si el click cae en el container
+$(document).on('mousedown', '#paymentModal .select2-container', function (e) {
+    e.stopPropagation();
 });

@@ -7,9 +7,16 @@
             <div class="col-sm-6">
                 <h1>
                     <i class="fas fa-cash-register"></i> Pagos
-                    <button class="btn btn-app bg-dark" type="button" data-toggle="modal" data-target="#paymentModal">
-                        <i class="fas fa-plus-circle"></i> Nuevo
+                    @php
+                        $hasLoansEnabled = isset($loans) && $loans->count() > 0;
+                    @endphp
+
+                    <button class="btn btn-app {{ $hasLoansEnabled ? 'bg-dark' : 'bg-secondary' }}" type="button"
+                        {{ $hasLoansEnabled ? 'data-toggle=modal data-target=#paymentModal' : 'disabled' }}>
+                        <i class="fas {{ $hasLoansEnabled ? 'fa-plus-circle' : 'fa-ban' }}"></i>
+                        {{ $hasLoansEnabled ? 'Nuevo' : 'No hay préstamos habilitados' }}
                     </button>
+
                 </h1>
             </div>
             <div class="col-sm-6">
@@ -70,6 +77,14 @@
             storePayment: "{{ route('admin.loan-payments.store') }}",
             paymentList: "{{ route('admin.loan-payments.list') }}",
             generatePaymentCode: "{{ route('admin.loan-payments.generate-code') }}",
+            paymentReceipt: "{{ route('admin.loan-payments.receipt', ['payment' => ':id']) }}",
+            paymentBalance: "{{ route('admin.loan-payments.balance', ':id') }}",
+            loanSchedulesByLoan: "{{ url('/admin/loans') }}/:id/schedules",
+            loansAvailable: "{{ route('admin.loan-payments.loans-available') }}",
+
+
+
+
 
         }
     </script>

@@ -85,21 +85,41 @@
                                     <div id="vp_amount" class="h5 font-weight-bold text-dark">S/ 0.00</div>
                                 </div>
                             </div>
-
                             <div class="row mt-2">
                                 <div class="col-sm-4 mb-2">
+                                    <small class="text-muted d-block">N° de cuota</small>
+                                    <div id="vp_installment_number" class="font-weight-600">—</div>
+                                </div>
+
+                                <div class="col-sm-4 mb-2">
+                                    <small class="text-muted d-block">Vence</small>
+                                    <div id="vp_due_date" class="font-weight-600">—</div>
+                                </div>
+
+                                <div class="col-sm-4 mb-2">
+                                    <small class="text-muted d-block">Total cuota</small>
+                                    <div id="vp_installment_total" class="font-weight-600">S/ 0.00</div>
+                                </div>
+                            </div>
+
+
+                            <div class="row mt-2">
+                                <div class="col-sm-3 mb-2">
                                     <small class="text-muted d-block">Capital</small>
                                     <div id="vp_capital" class="font-weight-600">S/ 0.00</div>
                                 </div>
 
-                                <div class="col-sm-4 mb-2">
+                                <div class="col-sm-3 mb-2">
                                     <small class="text-muted d-block">Interés</small>
                                     <div id="vp_interest" class="font-weight-600">S/ 0.00</div>
                                 </div>
-
-                                <div class="col-sm-4 mb-2">
+                                <div class="col-sm-3 mb-2">
                                     <small class="text-muted d-block">Mora</small>
                                     <div id="vp_late_fee" class="font-weight-600">S/ 0.00</div>
+                                </div>
+                                <div class="col-sm-3 mb-2">
+                                    <small class="text-muted d-block">Gasto adicional</small>
+                                    <div id="vp_additional_expense" class="font-weight-600">S/ 0.00</div>
                                 </div>
                             </div>
 
@@ -136,7 +156,8 @@
 
                             <div class="mb-2">
                                 <small class="text-muted d-block">Notas</small>
-                                <div id="vp_notes" class="font-weight-600 text-muted" style="white-space:pre-line;">—
+                                <div id="vp_notes" class="font-weight-600 text-muted" style="white-space:pre-line;">
+                                    —
                                 </div>
                             </div>
 

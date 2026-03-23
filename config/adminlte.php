@@ -298,7 +298,7 @@ return [
     | https://github.com/jeroennoten/Laravel-AdminLTE/wiki/Menu-Configuration
     |
     */
-    
+
 
     'menu' => [
         // Navbar items:
@@ -311,12 +311,18 @@ return [
             'type' => 'fullscreen-widget',
             'topnav_right' => false,
         ],
+        [
+            'text' => 'Home',
+            'url' => 'home',
+            'icon' => 'fas fa-house-user',
+            'label_color' => 'success',
+        ],
 
         // Sidebar items:
-        [
+        /* [
             'type' => 'sidebar-menu-search',
-            'text' => 'search',
-        ],
+            'text' => 'buscar',
+        ], */
         [
             'text' => 'blog',
             'url' => 'admin/blog',
@@ -326,11 +332,11 @@ return [
             'text' => 'Usuarios',
             'icon' => 'fas fa-users',
             'submenu' => [
-                 [
+                [
                     'text' => 'Roles',
                     'icon_color' => 'primary',
-                    'url' => 'admin/roles' ,
-                    "can" => 'admin.roles.index' 
+                    'url' => 'admin/roles',
+                    "can" => 'admin.roles.index'
 
                 ],
                 [
@@ -338,45 +344,83 @@ return [
                     'icon_color' => 'yellow',
                     'url' => 'admin/users',
                     "can" => 'admin.users.index'
-                ],                
-               
-               
+                ],
+
+
             ],
         ],
-        
-        
         [
             'text' => 'Clientes',
-            'url' => 'admin/clients',
             'icon' => 'fas fa-user-tie',
-            'label_color' => 'success',
-            "can" => 'admin.clientes.index'
+            'submenu' => [
+                [
+                    'text' => 'Clientes',
+                    'icon_color' => 'primary',
+                    'url' => 'admin/clients',
+                    "can" => 'admin.clientes.index'
+
+                ],
+                [
+                    'text' => 'Garantes',
+                    'icon_color' => 'yellow',
+                    'url' => 'admin/guarantors',
+                    "can" => 'admin.guarantors.index'
+
+                ],
+
+
+            ],
         ],
-        [
-            'text' => 'Garantes',
-            'url' => 'admin/guarantors',
-            'icon' => 'fas fa-user-shield',
-            'label_color' => 'success',
-        ],
+
         [
             'text' => 'Prestamos',
             'url' => 'admin/loans',
             'icon' => 'fas fa-hand-holding-usd',
             'label_color' => 'success',
+            "can" => 'admin.loans.index'
+
         ],
         [
             'text' => 'Pagos de Préstamos',
             'url' => 'admin/loan-payments',
             'icon' => 'fas  fa-cash-register',
             'label_color' => 'success',
+            "can" => 'admin.payments.index'
+
+
         ],
+/* 
         [
-            'text' => 'Recordatorios',
-            'url' => 'admin/reminders',
-            'icon' => 'fas fa-bell',
+            'text' => 'Reportes',
+            'url' => 'admin/reports',
+            'icon' => 'fas  fa-poll',
             'label_color' => 'success',
         ],
-      /*   [
+ */
+        [
+            'text' => 'Reportes',
+            'icon' => 'fas fa-poll',
+            'submenu' => [
+                [
+                    'text' => 'Reportes',
+                    'icon_color' => 'primary',
+                    'url' => 'admin/reports',
+                   /*  "can" => 'admin.clientes.index' */
+
+                ],
+                [
+                    'text' => 'Resumen General',
+                    'icon_color' => 'yellow',
+                    'url' => 'admin/reports/advanced',
+                    /* "can" => 'admin.guarantors.index' */
+
+                ],
+
+
+            ],
+        ],
+
+        /*   [
             'text' => 'pages',
             'url' => 'admin/pages',
             'icon' => 'far fa-fw fa-file',
@@ -385,13 +429,26 @@ return [
         ], */
         ['header' => 'CONFIGURACION'],
         [
+            'text' => 'Abrir Caja',
+            'url' => 'admin/cash-box',
+            'icon' => 'fas  fa-door-open',
+            'label_color' => 'success',
+        ],
+        [
+            'text' => 'Recordatorios',
+            'url' => 'admin/reminders',
+            'icon' => 'fas fa-bell',
+            'label_color' => 'success',
+        ],
+        [
             'text' => 'Sucursales',
             'url' => 'admin/branches',
             'icon' => 'fas fa-code-branch',
             'label_color' => 'success',
         ],
-        
-        ['header' => 'labels'],
+
+
+        /* ['header' => 'labels'], */
         /* [
             'text' => 'important',
             'icon_color' => 'red',

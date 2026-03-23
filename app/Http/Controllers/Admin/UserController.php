@@ -56,6 +56,41 @@ class UserController extends Controller
         //
     }
 
+
+    private function normalizeUserData(array $data): array
+    {
+        // Nombre y Apellidos: Primera letra mayúscula
+        if (isset($data['name'])) {
+            $data['name'] = ucwords(strtolower(trim($data['name'])));
+        }
+
+        if (isset($data['lastname'])) {
+            $data['lastname'] = ucwords(strtolower(trim($data['lastname'])));
+        }
+
+        // Email: todo minúscula
+        if (isset($data['email'])) {
+            $data['email'] = strtolower(trim($data['email']));
+        }
+
+        // Dirección: primera letra mayúscula
+        if (isset($data['address'])) {
+            $data['address'] = ucfirst(strtolower(trim($data['address'])));
+        }
+
+        // DNI solo números
+        if (isset($data['dni'])) {
+            $data['dni'] = preg_replace('/\D/', '', $data['dni']);
+        }
+
+        // Teléfono solo números
+        if (isset($data['phone'])) {
+            $data['phone'] = preg_replace('/\D/', '', $data['phone']);
+        }
+
+        return $data;
+    }
+
     /**
      * Store a newly created resource in storage.
      */
@@ -70,10 +105,43 @@ class UserController extends Controller
             'password_confirmation' => 'required|same:password',
             'phone' => 'nullable|min:9|max:15',
             'address' => 'nullable|min:3|max:150',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
             'status' => 'required',
+        ], [
 
+            // DNI
+            'dni.required' => 'El DNI es obligatorio.',
+            'dni.min' => 'El DNI debe tener 8 dígitos.',
+            'dni.max' => 'El DNI debe tener 8 dígitos.',
+            'dni.unique' => 'Este DNI ya está registrado.',
+
+            // Nombre
+            'name.required' => 'El nombre es obligatorio.',
+            'name.min' => 'El nombre debe tener mínimo 3 caracteres.',
+
+            // Apellidos
+            'lastname.required' => 'Los apellidos son obligatorios.',
+
+            // Email
+            'email.required' => 'El correo es obligatorio.',
+            'email.email' => 'El correo no tiene un formato válido.',
+            'email.unique' => 'Este correo ya está registrado.',
+
+            // Password
+            'password.required' => 'La contraseña es obligatoria.',
+            'password.min' => 'La contraseña debe tener mínimo 6 caracteres.',
+            'password_confirmation.same' => 'Las contraseñas no coinciden.',
+
+            // Imagen
+            'image.image' => 'El archivo debe ser una imagen.',
+            'image.mimes' => 'La imagen debe ser JPG o PNG.',
+            'image.max' => 'La imagen no debe pesar más de 2MB.',
+
+            // Estado
+            'status.required' => 'El estado es obligatorio.',
         ]);
+
+        $data = $this->normalizeUserData($data);
 
         if ($request->hasFile('image')) {
             $data['photo'] = $request->file('image')->store('users');
@@ -108,6 +176,8 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         //
+
+
         $data = $request->validate([
             'dni' => 'required|min:8|max:8|unique:users,dni,' . $user->id,
             'name' => 'required|min:3|max:50',
@@ -115,10 +185,40 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email,' . $user->id,
             'phone' => 'nullable|min:9|max:15',
             'address' => 'nullable|min:3|max:150',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
             'status' => 'required',
+        ], [
 
+            // DNI
+            'dni.required' => 'El DNI es obligatorio.',
+            'dni.min' => 'El DNI debe tener 8 dígitos.',
+            'dni.max' => 'El DNI debe tener 8 dígitos.',
+            'dni.unique' => 'Este DNI ya está registrado.',
+
+            // Nombre
+            'name.required' => 'El nombre es obligatorio.',
+            'name.min' => 'El nombre debe tener mínimo 3 caracteres.',
+
+            // Apellidos
+            'lastname.required' => 'Los apellidos son obligatorios.',
+
+            // Email
+            'email.required' => 'El correo es obligatorio.',
+            'email.email' => 'El correo no tiene un formato válido.',
+            'email.unique' => 'Este correo ya está registrado.',
+
+
+            // Imagen
+            'image.image' => 'El archivo debe ser una imagen.',
+            'image.mimes' => 'La imagen debe ser JPG o PNG.',
+            'image.max' => 'La imagen no debe pesar más de 2MB.',
+
+            // Estado
+            'status.required' => 'El estado es obligatorio.',
         ]);
+
+        $data = $this->normalizeUserData($data);
+
         //VALIDAMOS LA CONTRASEÑA
         if ($request->filled('password')) {
             $request->validate([

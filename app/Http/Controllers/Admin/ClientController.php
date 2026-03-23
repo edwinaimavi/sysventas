@@ -182,7 +182,39 @@ class ClientController extends Controller
         ]);
     }
 
+    private function normalizeUserData(array $data): array
+    {
+        // Nombre y Apellidos: Primera letra mayúscula
+        if (isset($data['first_name'])) {
+            $data['first_name'] = ucwords(strtolower(trim($data['first_name'])));
+        }
 
+        if (isset($data['last_name'])) {
+            $data['last_name'] = ucwords(strtolower(trim($data['last_name'])));
+        }
+
+        // Email: todo minúscula
+        if (isset($data['email'])) {
+            $data['email'] = strtolower(trim($data['email']));
+        }
+
+        // Dirección: primera letra mayúscula
+        if (isset($data['occupation'])) {
+            $data['occupation'] = ucfirst(strtolower(trim($data['occupation'])));
+        }
+
+        // DNI solo números
+        if (isset($data['document_number'])) {
+            $data['document_number'] = preg_replace('/\D/', '', $data['document_number']);
+        }
+
+        // Teléfono solo números
+        if (isset($data['phone'])) {
+            $data['phone'] = preg_replace('/\D/', '', $data['phone']);
+        }
+
+        return $data;
+    }
 
     /**
      * Store a newly created client
@@ -213,7 +245,17 @@ class ClientController extends Controller
             'first_name'      => 'nullable|string|min:2|max:50',
             'last_name'       => 'nullable|string|min:2|max:50',
 
-            'birth_date'      => 'nullable|date|before:today',
+            'birth_date' => [
+                'nullable',
+                'date',
+                'before:today',
+                function ($attribute, $value, $fail) {
+                    $edad = \Carbon\Carbon::parse($value)->age;
+                    if ($edad < 18) {
+                        $fail('El cliente debe ser mayor de 18 años.');
+                    }
+                }
+            ],
 
             'gender'         => 'nullable|in:M,F,O',
             'marital_status' => 'nullable|in:soltero,casado,divorciado,viudo',
@@ -235,6 +277,8 @@ class ClientController extends Controller
 
             'image'           => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
+
+        $data = $this->normalizeUserData($data);
 
         // 🔹 Asignamos sucursal y usuario desde backend
         $data['branch_id'] = $branchId;
@@ -272,6 +316,8 @@ class ClientController extends Controller
 
         try {
             DB::beginTransaction();
+            // 🔥 SOLO PARA PRUEBA
+            sleep(5);
 
             if ($request->hasFile('image')) {
                 $data['photo'] = $request->file('image')->store('clients');
@@ -387,6 +433,9 @@ class ClientController extends Controller
 
             'phone.regex'  => 'El teléfono debe contener solo números (9 a 15 dígitos).',
         ]);
+
+        $data = $this->normalizeUserData($data);
+
 
         // 🔹 forzamos a que siga en la sucursal actual de la sesión
         $data['branch_id'] = $branchId;

@@ -1,6 +1,24 @@
 var divLoading = document.getElementById('divLoading');
 let tableLoan;
-var isSubmitting = false;
+// ============================
+// LOCKS ANTI DOBLE CLICK (por acción)
+// ============================
+const submitLocks = {
+    loanSave: false,
+    disbursementSave: false,
+    incrementSave: false,
+    refinanceSave: false
+};
+
+function lock(action) {
+    if (submitLocks[action]) return false; // ya está bloqueado
+    submitLocks[action] = true;
+    return true;
+}
+
+function unlock(action) {
+    submitLocks[action] = false;
+}
 
 document.addEventListener("DOMContentLoaded", function () {
     //csrf token para AJAX
@@ -104,6 +122,12 @@ document.addEventListener("DOMContentLoaded", function () {
         $('#vl_total_payable').text(`S/ ${parseFloat(total_payable || 0).toFixed(2)}`);
         $('#vl_disbursement_date').text(disbursement_date || '—');
 
+        $('#vl_refinances_section').addClass('d-none');
+        $('#vl_refinances_list').html('');
+        $('#vl_refinances_summary').text('');
+        $('#vl_refinance_badge_wrap').addClass('d-none');
+
+
         $('#vl_id').text(id);
         $('#vl_created_at').text(created_at || '—');
         $('#vl_notes').text(notes || '—');
@@ -156,9 +180,15 @@ document.addEventListener("DOMContentLoaded", function () {
         // ================================
         loadDisbursements(id);
 
+        loadSchedule(id);
+
 
         // 6. CARGAR INCREMENTOS POR AJAX
         loadIncrements(id);
+
+        // 7. CARGAR REFINANCIAMIENTOS POR AJAX
+        loadRefinances(id);
+
 
         // ================================
         // 6. MOSTRAR MODAL
@@ -253,28 +283,33 @@ document.addEventListener("DOMContentLoaded", function () {
     // ============================
     function recalcLoan() {
         const amount = parseFloat($('#amount').val());
-        const termMonths = parseInt($('#term_months').val(), 10);
-        const interestRate = parseFloat($('#interest_rate').val()); // tasa en %
+        const n = parseInt($('#term_months').val(), 10);
+        const ratePercent = parseFloat($('#interest_rate').val()); // % mensual
 
-        // Si falta algún dato o son inválidos, limpiamos los campos y salimos
-        if (!amount || !termMonths || termMonths <= 0 || isNaN(interestRate) || interestRate < 0) {
+        if (!amount || !n || n <= 0 || isNaN(ratePercent) || ratePercent < 0) {
             $('#monthly_payment').val('');
             $('#total_payable').val('');
             return;
         }
 
-        // Interés fijo sobre el monto
-        const interestAmount = amount * (interestRate / 100);
+        const r = ratePercent / 100; // decimal
 
-        // Cuota mensual = monto + interés
-        const monthlyPayment = amount + interestAmount;
+        let pmt = 0;
+        if (r === 0) {
+            pmt = amount / n;
+        } else {
+            const pow = Math.pow(1 + r, n);
+            pmt = amount * ((r * pow) / (pow - 1));
+        }
 
-        // Total = cuota mensual * meses
-        const totalPayable = monthlyPayment * termMonths;
+        const total = pmt * n;
 
-        $('#monthly_payment').val(monthlyPayment.toFixed(2));
-        $('#total_payable').val(totalPayable.toFixed(2));
+        $('#monthly_payment').val(pmt.toFixed(2));
+        $('#total_payable').val(total.toFixed(2));
     }
+
+
+
 
     // ⭐ REACTIVAR EL CÁLCULO AUTOMÁTICO
     $('#amount, #term_months, #interest_rate').on('input change', function () {
@@ -307,40 +342,34 @@ document.addEventListener("DOMContentLoaded", function () {
     // ============================
     $('#loanForm').on('submit', function (e) {
         e.preventDefault();
-        if (isSubmitting) return;     // ⛔ evita doble click
-        isSubmitting = true;
 
-        divLoading && (divLoading.style.display = 'flex');  // loading
+        // ⛔ evita doble envío SOLO para este submit
+        if (!lock('loanSave')) return;
+
+        divLoading && (divLoading.style.display = 'flex');
 
         const $form = $(this);
-        const id = $form.attr('data-id'); // si luego queremos editar
+        const id = $form.attr('data-id');
 
-        // 👇 NUEVO: respetar estado original si era "disbursed"
+        // respetar estado original si era disbursed
         const originalStatus = $form.attr('data-original-status');
         if (originalStatus === 'disbursed') {
-            $('#status').val('disbursed'); // fuerzas que se envíe como desembolsado
+            $('#status').val('disbursed');
         }
 
         let url, method;
-        const formData = $form.serialize();  // no hay archivos, serialize está ok
+        const formData = $form.serialize();
 
         if (id) {
-            // MODO EDITAR (cuando tengamos update)
             url = `/admin/loans/${id}`;
-            method = 'POST'; // usando _method=PUT
+            method = 'POST';
         } else {
-            // MODO CREAR
-            url = window.routes.storeLoan;  // route('admin.loans.store')
+            url = window.routes.storeLoan;
             method = 'POST';
         }
 
-        // Si fuera edit, agregamos _method=PUT (dejado listo para el futuro)
         let dataToSend = formData;
-        if (id) {
-            dataToSend = formData + '&_method=PUT';
-        }
-
-        divLoading && (divLoading.style.display = 'flex');
+        if (id) dataToSend = formData + '&_method=PUT';
 
         $.ajax({
             url: url,
@@ -348,14 +377,12 @@ document.addEventListener("DOMContentLoaded", function () {
             data: dataToSend,
             success: function (response) {
                 divLoading && (divLoading.style.display = 'none');
-                isSubmitting = false;
+                unlock('loanSave');
 
                 $('#loanModal').modal('hide');
                 $form.removeAttr('data-id');
 
-                if (tableLoan) {
-                    tableLoan.ajax.reload(null, false);
-                }
+                tableLoan && tableLoan.ajax.reload(null, false);
 
                 Swal.fire({
                     icon: 'success',
@@ -369,12 +396,11 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             error: function (xhr) {
                 divLoading && (divLoading.style.display = 'none');
-                isSubmitting = false;
+                unlock('loanSave');
 
                 if (xhr.status === 422) {
                     const errors = xhr.responseJSON.errors || {};
 
-                    // limpiar errores previos
                     $form.find('.is-invalid').removeClass('is-invalid');
                     $form.find('.invalid-feedback').text('');
 
@@ -385,7 +411,6 @@ document.addEventListener("DOMContentLoaded", function () {
                             $('#' + field + '-error').text(messages[0]);
                         }
                     });
-
                 } else {
                     console.error('Error al guardar préstamo', xhr);
                     Swal.fire({
@@ -401,9 +426,11 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
 
+
     //limpiar modal al cerrarlo
 
     $('#loanModal').on('hidden.bs.modal', function () {
+        unlock('loanSave');
         const $form = $('#loanForm');
 
         $form[0].reset();
@@ -433,12 +460,25 @@ document.addEventListener("DOMContentLoaded", function () {
         $('#vl_increments_section').addClass('d-none');
         $('#vl_increments_list').html('');
         $('#vl_increments_summary').text('');
+
+        // refinanciamientos
+        $('#vl_refinances_section').addClass('d-none');
+        $('#vl_refinances_list').html('');
+        $('#vl_refinances_summary').text('');
+        $('#vl_refinance_badge_wrap').addClass('d-none');
+
+
+        $('#vl_schedule_section').addClass('d-none');
+        $('#vl_schedule_tbody').html('');
+        $('#vl_schedule_summary').text('');
+
     });
 
     $('#client_id').on('change', function () {
-        const text = $(this).find('option:selected').text() || 'No seleccionado';
-        $('#left_client_name').text(text);
+        const name = $(this).find('option:selected').data('name') || 'No seleccionado';
+        $('#left_client_name').text(name);
     });
+
 
     $('#guarantor_id').on('change', function () {
         const text = $(this).find('option:selected').text() || 'Opcional';
@@ -616,64 +656,39 @@ document.addEventListener("DOMContentLoaded", function () {
     $('#disbursementForm').on('submit', function (e) {
         e.preventDefault();
 
-
+        // ⛔ evita doble envío SOLO de desembolso
+        if (!lock('disbursementSave')) return;
 
         const $form = $(this);
 
-        // leer monto a desembolsar
         const disbAmount = parseFloat($('#disb_amount').val() || 0);
 
-        // saldo pendiente
-        // lo tomamos del data del form o del span
         let remaining = parseFloat($form.data('remaining'));
         if (isNaN(remaining)) {
             remaining = parseFloat($('#disb_remaining_amount').data('remaining') || 0);
         }
 
         if (!disbAmount || disbAmount <= 0) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Monto inválido',
-                text: 'Debes ingresar un monto mayor a 0.'
-            });
-            isSubmitting = false; // 👈 FIX
+            Swal.fire({ icon: 'warning', title: 'Monto inválido', text: 'Debes ingresar un monto mayor a 0.' });
+            unlock('disbursementSave');
             return;
         }
 
-        // Tolerancia de 1 céntimo
         const diff = Math.abs(disbAmount - remaining);
 
         if (diff > 0.009) {
-            let mensaje = '';
+            let mensaje = (disbAmount > remaining)
+                ? `El monto ingresado (S/ ${disbAmount.toFixed(2)}) excede el saldo pendiente (S/ ${remaining.toFixed(2)}).`
+                : `El saldo pendiente es S/ ${remaining.toFixed(2)} y estás registrando S/ ${disbAmount.toFixed(2)}. Debe coincidir exacto.`;
 
-            if (disbAmount > remaining) {
-                mensaje = `El monto ingresado (S/ ${disbAmount.toFixed(2)}) 
-        excede el saldo pendiente por desembolsar (S/ ${remaining.toFixed(2)}).`;
-            } else {
-                mensaje = `El saldo pendiente por desembolsar es S/ ${remaining.toFixed(2)} 
-        y estás registrando S/ ${disbAmount.toFixed(2)}. 
-        El monto debe coincidir exactamente con el saldo pendiente.`;
-            }
-
-            Swal.fire({
-                icon: 'warning',
-                title: 'Monto no coincide',
-                text: mensaje
-            });
-
-            isSubmitting = false; // 👈 FIX IMPORTANTE
+            Swal.fire({ icon: 'warning', title: 'Monto no coincide', text: mensaje });
+            unlock('disbursementSave');
             return;
         }
 
-        if (isSubmitting) return;     // ⛔ evita doble envío
-        isSubmitting = true;
-
         divLoading && (divLoading.style.display = 'flex');
 
-        // Si pasa las validaciones, recién mandamos al backend
         const formData = new FormData(this);
-
-        divLoading && (divLoading.style.display = 'flex');
 
         $.ajax({
             url: window.routes.storeDisbursement,
@@ -683,13 +698,11 @@ document.addEventListener("DOMContentLoaded", function () {
             contentType: false,
             success: function (response) {
                 divLoading && (divLoading.style.display = 'none');
+                unlock('disbursementSave');
 
                 $('#disbursementModal').modal('hide');
-                isSubmitting = false;
 
-                if (tableLoan) {
-                    tableLoan.ajax.reload(null, false);
-                }
+                tableLoan && tableLoan.ajax.reload(null, false);
 
                 Swal.fire({
                     icon: 'success',
@@ -703,9 +716,21 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             error: function (xhr) {
                 divLoading && (divLoading.style.display = 'none');
-                isSubmitting = false;
+                unlock('disbursementSave');
 
                 if (xhr.status === 422) {
+
+                    // 🔴 CASO: error de negocio (ej: caja cerrada)
+                    if (xhr.responseJSON && xhr.responseJSON.message && !xhr.responseJSON.errors) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'No se puede desembolsar',
+                            text: xhr.responseJSON.message
+                        });
+                        return;
+                    }
+
+                    // 🔵 CASO: validaciones de formulario
                     const errors = xhr.responseJSON.errors || {};
 
                     $form.find('.is-invalid').removeClass('is-invalid');
@@ -719,9 +744,10 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                     });
 
-                } else {
+                    return;
+                }
+                else {
                     console.error('Error al guardar desembolso', xhr);
-
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
@@ -736,8 +762,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 
+
     // limpiar modal de desembolso al cerrarlo (opcional)
     $('#disbursementModal').on('hidden.bs.modal', function () {
+        unlock('disbursementSave');
         const $form = $('#disbursementForm');
         $form[0].reset();
         $form.find('.is-invalid').removeClass('is-invalid');
@@ -886,6 +914,129 @@ document.addEventListener("DOMContentLoaded", function () {
             </div>
         </div>
     `;
+    }
+
+
+    function buildRefinanceCard(r) {
+        const date = r.refinance_date || r.created_at || '—';
+        const base = formatCurrency(r.base_balance);
+        const rate = (r.interest_rate ?? '—') + ' %';
+        const term = (r.new_term_months ?? '—') + ' meses';
+        const due = r.new_due_date || '—';
+        const notes = r.notes || '—';
+        const status = (r.status || '—');
+        const user = r.user_name || '—';
+
+        return `
+    <div class="card mb-2 border-0 shadow-sm">
+        <div class="card-body py-2">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted d-block">Fecha</small>
+                    <div class="font-weight-600">${date}</div>
+                </div>
+                <div class="text-right">
+                    <small class="text-muted d-block">Estado</small>
+                    <div class="font-weight-600 text-capitalize">${status}</div>
+                </div>
+            </div>
+
+            <div class="row mt-2">
+                <div class="col-sm-6 mb-1">
+                    <small class="text-muted d-block">Saldo base</small>
+                    <div class="font-weight-600">${base}</div>
+                </div>
+                <div class="col-sm-6 mb-1">
+                    <small class="text-muted d-block">Tasa</small>
+                    <div class="font-weight-600">${rate}</div>
+                </div>
+                <div class="col-sm-6 mb-1">
+                    <small class="text-muted d-block">Nuevo plazo</small>
+                    <div class="font-weight-600">${term}</div>
+                </div>
+                <div class="col-sm-6 mb-1">
+                    <small class="text-muted d-block">Nuevo vencimiento</small>
+                    <div class="font-weight-600">${due}</div>
+                </div>
+            </div>
+
+            <div class="mt-2">
+                <small class="text-muted d-block">Registrado por</small>
+                <div class="font-weight-600">${user}</div>
+            </div>
+
+            <div class="mt-2">
+                <small class="text-muted d-block">Notas</small>
+                <div class="font-weight-600 text-muted" style="white-space:pre-line;">${notes}</div>
+            </div>
+        </div>
+    </div>
+    `;
+    }
+
+    function loadRefinances(loanId) {
+        const $section = $('#vl_refinances_section');
+        const $list = $('#vl_refinances_list');
+        const $summary = $('#vl_refinances_summary');
+        const $badgeWrap = $('#vl_refinance_badge_wrap');
+
+        if (!loanId) {
+            $section.addClass('d-none');
+            $list.html('');
+            $summary.text('');
+            $badgeWrap.addClass('d-none');
+            return;
+        }
+
+        const url = window.routes.refinanceHistory.replace(':id', loanId);
+
+        $.ajax({
+            url,
+            type: 'GET',
+            success: function (resp) {
+                if (!resp || resp.status !== 'success') {
+                    $section.addClass('d-none');
+                    $badgeWrap.addClass('d-none');
+                    return;
+                }
+
+                const data = resp.data || {};
+                const refinances = data.refinances || [];
+
+                // ✅ badge rojo si tiene refinance activo o si hay historial
+                const hasActive = data.summary && data.summary.has_active_refinance;
+                if (hasActive || refinances.length > 0) {
+                    $badgeWrap.removeClass('d-none');
+                } else {
+                    $badgeWrap.addClass('d-none');
+                }
+
+                if (!refinances.length) {
+                    $section.addClass('d-none');
+                    $list.html('');
+                    $summary.text('');
+                    return;
+                }
+
+                let html = '';
+                refinances.forEach(r => html += buildRefinanceCard(r));
+                $list.html(html);
+
+                const count = refinances.length;
+                const label = count === 1 ? 'refinanciamiento' : 'refinanciamientos';
+
+                const lastDate = (data.summary && data.summary.last_refinance_date) ? data.summary.last_refinance_date : null;
+                const extra = lastDate ? ` • Último: ${lastDate}` : '';
+
+                $summary.text(`${count} ${label}${extra}`);
+                $section.removeClass('d-none');
+            },
+            error: function (xhr) {
+                console.error('Error cargando refinanciamientos', xhr);
+                $section.addClass('d-none');
+                $badgeWrap.addClass('d-none');
+            }
+        });
     }
 
 
@@ -1076,29 +1227,23 @@ document.addEventListener("DOMContentLoaded", function () {
     $('#incrementForm').on('submit', function (e) {
         e.preventDefault();
 
-        if (isSubmitting) return;   // ⛔ evita doble envío
-        isSubmitting = true;
+        if (!lock('incrementSave')) return;
 
         divLoading && (divLoading.style.display = 'flex');
 
         const $form = $(this);
         const formData = $form.serialize();
 
-        if (divLoading) divLoading.style.display = 'flex';
-
         $.ajax({
-            url: window.routes.storeLoanIncrement, // la ruta que definamos en el blade
+            url: window.routes.storeLoanIncrement,
             type: 'POST',
             data: formData,
             success: function (res) {
-                if (divLoading) divLoading.style.display = 'none';
-                isSubmitting = false;
+                divLoading && (divLoading.style.display = 'none');
+                unlock('incrementSave');
 
                 $('#incrementModal').modal('hide');
-
-                if (tableLoan) {
-                    tableLoan.ajax.reload(null, false);
-                }
+                tableLoan && tableLoan.ajax.reload(null, false);
 
                 Swal.fire({
                     icon: 'success',
@@ -1111,8 +1256,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
             },
             error: function (xhr) {
-                if (divLoading) divLoading.style.display = 'none';
-                isSubmitting = false;
+                divLoading && (divLoading.style.display = 'none');
+                unlock('incrementSave');
 
                 if (xhr.status === 422) {
                     const errors = xhr.responseJSON.errors || {};
@@ -1139,6 +1284,9 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     });
+
+
+
 
     function recalcDueDate() {
         const disb = $('#disbursement_date').val();
@@ -1175,9 +1323,291 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
 
+    // ============================
+    // REFINANCIAR - ABRIR MODAL + CARGAR INFO
+    // ============================
+    $(document).on('click', '.refinanceLoan', function () {
+        const loanId = $(this).data('id');
+        const loanCode = $(this).data('loan_code') || '—';
+        $('#rf_new_due_date').val('');
+        $('#rf_notes').val('');
+
+        // limpiar errores
+        $('#rf_refinance_date_error, #rf_new_term_months_error, #rf_base_balance_error, #rf_interest_rate_error').text('');
+
+        // set básico en modal
+        $('#rf_loan_id').val(loanId);
+        $('#rf_loan_code').text(loanCode);
+
+        // defaults
+        const today = new Date().toISOString().slice(0, 10);
+        $('#rf_refinance_date').val(today);
+        $('#rf_new_term_months').val(1);
+        // si new_due_date es requerido en controller, ponlo por defecto hoy+30
+        // (opcional) si quieres:
+        // $('#rf_new_due_date').val(addDays(today, 30));
+
+        // mostrar cargando
+        $('#rf_remaining').text('Cargando...');
+        $('#rf_due_date').text('Cargando...');
+        $('#rf_overdue_badge').html('');
+
+        // abrir modal
+        $('#refinanceModal').modal('show');
+
+        // pedir info al backend
+        const url = window.routes.refinanceInfo.replace(':id', loanId);
+
+        $.get(url)
+            .done(function (res) {
+                if (!res || res.status !== 'success') {
+                    Swal.fire({ icon: 'error', title: 'Error', text: (res && res.message) ? res.message : 'No se pudo cargar info.' });
+                    return;
+                }
+
+                const d = res.data;
+
+                // mostrar info
+                $('#rf_remaining').text('S/ ' + parseFloat(d.remaining_balance || 0).toFixed(2));
+                $('#rf_due_date').text(d.due_date || '—');
+
+                // badge vencido
+                if (d.is_overdue) {
+                    $('#rf_overdue_badge').html('<span class="badge bg-danger ms-2">Vencido</span>');
+                } else {
+                    $('#rf_overdue_badge').html('<span class="badge bg-success ms-2">No vencido</span>');
+                }
+
+                // si ya tiene refinance activo, bloquear guardar (por seguridad UI)
+                if (d.has_active_refinance) {
+                    $('#btnSaveRefinance').prop('disabled', true);
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Refinanciamiento activo',
+                        text: 'Este préstamo ya tiene un refinanciamiento activo.'
+                    });
+                } else {
+                    $('#btnSaveRefinance').prop('disabled', false);
+                }
+
+                // sugerir base_balance con saldo pendiente
+                $('#rf_base_balance').val(parseFloat(d.remaining_balance || 0).toFixed(2));
+
+                // sugerir new_due_date si quieres: usar la misma due_date actual o +30
+                if (d.due_date) {
+                    // opcional: poner una fecha por defecto mayor a refinance_date
+                    // si quieres usar la misma due_date, descomenta:
+                    // $('#rf_new_due_date').val(d.due_date);
+                }
+            })
+            .fail(function (xhr) {
+                console.error(xhr.responseText);
+                Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo cargar la información del préstamo.' });
+            });
+    });
+
+
+    // ============================
+    // REFINANCIAR - GUARDAR (AJAX)
+    // ============================
+    $(document).on('click', '#btnSaveRefinance', function () {
+
+        if (!lock('refinanceSave')) return;
+
+        const loanId = $('#rf_loan_id').val();
+
+        const payload = {
+            loan_id: loanId,
+            refinance_date: $('#rf_refinance_date').val(),
+            new_term_months: $('#rf_new_term_months').val(),
+            new_due_date: $('#rf_new_due_date').val(),
+            base_balance: $('#rf_base_balance').val(),
+            interest_rate: $('#rf_interest_rate').val(),
+            notes: $('#rf_notes').val(),
+        };
+
+        // limpiar errores
+        $('#rf_refinance_date_error, #rf_new_term_months_error, #rf_base_balance_error, #rf_interest_rate_error').text('');
+
+        // validación rápida front
+        if (!payload.loan_id) {
+            Swal.fire({ icon: 'warning', title: 'Falta préstamo', text: 'No se detectó el préstamo.' });
+            unlock('refinanceSave');
+            return;
+        }
+        if (!payload.refinance_date) {
+            $('#rf_refinance_date_error').text('La fecha es obligatoria.');
+            unlock('refinanceSave');
+            return;
+        }
+        if (!payload.new_term_months || parseInt(payload.new_term_months) < 1) {
+            $('#rf_new_term_months_error').text('El plazo debe ser mínimo 1.');
+            unlock('refinanceSave');
+            return;
+        }
+        if (!payload.new_due_date) {
+            Swal.fire({ icon: 'warning', title: 'Falta vencimiento', text: 'Debes seleccionar la nueva fecha de vencimiento.' });
+            unlock('refinanceSave');
+            return;
+        }
+
+        $.ajax({
+            url: window.routes.refinanceStore,
+            type: 'POST',
+            data: payload,
+            success: function (res) {
+                unlock('refinanceSave');
+
+                if (!res || res.status !== 'success') {
+                    Swal.fire({ icon: 'error', title: 'Error', text: (res && res.message) ? res.message : 'No se pudo refinanciar.' });
+                    return;
+                }
+
+                $('#refinanceModal').modal('hide');
+
+                Swal.fire({
+                    icon: 'success',
+                    title: res.message || 'Refinanciado correctamente',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+
+                tableLoan && tableLoan.ajax.reload(null, false);
+            },
+            error: function (xhr) {
+                unlock('refinanceSave');
+
+                if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                    const errs = xhr.responseJSON.errors;
+
+                    if (errs.refinance_date) $('#rf_refinance_date_error').text(errs.refinance_date[0]);
+                    if (errs.new_term_months) $('#rf_new_term_months_error').text(errs.new_term_months[0]);
+                    if (errs.interest_rate) $('#rf_interest_rate_error').text(errs.interest_rate[0]);
+                    if (errs.new_due_date) Swal.fire({ icon: 'warning', title: 'Revisa la fecha', text: errs.new_due_date[0] });
+
+                    return;
+                }
+
+                const msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Error al guardar refinanciamiento.';
+                Swal.fire({ icon: 'error', title: 'Error', text: msg });
+            }
+        });
+    });
+
+    $('#refinanceModal').on('hidden.bs.modal', function () {
+        unlock('refinanceSave');
+    });
 
 
 
+    // ============================
+    //   SELECT2 CLIENTE (buscador)
+    // ============================
+    function initClientSelect2() {
+        const $client = $('#client_id');
+
+        if (!$client.length) return;
+
+        // Evitar doble inicialización
+        if ($client.hasClass('select2-hidden-accessible')) {
+            $client.select2('destroy');
+        }
+
+        $client.select2({
+            theme: 'bootstrap4',
+            width: '100%',
+            placeholder: 'Buscar por nombre o DNI...',
+            allowClear: true,
+            dropdownParent: $('#loanModal'),
+            matcher: function (params, data) {
+
+                if ($.trim(params.term) === '') {
+                    return data;
+                }
+
+                const term = params.term.toLowerCase();
+                const text = (data.text || '').toLowerCase();
+
+                // Buscar en texto visible (nombre + DNI)
+                if (text.includes(term)) {
+                    return data;
+                }
+
+                return null;
+            }
+        });
+    }
+
+    // Inicializar al abrir modal
+    $('#loanModal').on('shown.bs.modal', function () {
+        initClientSelect2();
+    });
+
+
+
+    function money(v) {
+        const n = Number(v || 0);
+        return 'S/ ' + n.toFixed(2);
+    }
+
+    function buildScheduleRow(r) {
+        const mes = r.installment_no ?? '—';
+        const venc = r.due_date ? r.due_date : '—';
+
+        return `
+        <tr>
+            <td class="text-center">${mes}</td>
+            <td>${venc}</td>
+            <td class="text-right">${money(r.opening_balance)}</td>
+            <td class="text-right">${money(r.interest)}</td>
+            <td class="text-right">${money(r.amortization)}</td>
+            <td class="text-right font-weight-bold">${money(r.payment)}</td>
+        </tr>
+    `;
+    }
+
+    function loadSchedule(loanId) {
+        const $section = $('#vl_schedule_section');
+        const $tbody = $('#vl_schedule_tbody');
+        const $summary = $('#vl_schedule_summary');
+
+        $section.addClass('d-none');
+        $tbody.html('');
+        $summary.text('');
+
+        if (!loanId || !window.routes.loanSchedulesByLoan) return;
+
+        const url = window.routes.loanSchedulesByLoan.replace(':id', loanId);
+
+        $.get(url)
+            .done(function (resp) {
+                if (!resp || resp.status !== 'success') return;
+
+                let rows = [];
+
+                // ✅ Normaliza a rows siempre
+                if (Array.isArray(resp.data)) {
+                    rows = resp.data;
+                } else {
+                    rows = (resp.data && resp.data.rows) ? resp.data.rows : [];
+                }
+
+                // ⛔ ignorar month0 completamente
+                if (!rows.length) return;
+
+                let html = '';
+                rows.forEach(r => html += buildScheduleRow(r));
+                $tbody.html(html);
+
+                $summary.text(`${rows.length} cuotas`);
+                $section.removeClass('d-none');
+            })
+            .fail(function (xhr) {
+                console.error('Error cargando cronograma', xhr.responseText || xhr);
+            });
+    }
 
 
 

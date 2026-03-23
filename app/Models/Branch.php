@@ -20,4 +20,5 @@ protected $fillable = [
     'manager_user_id',
     'is_active',
 ];
+
 }

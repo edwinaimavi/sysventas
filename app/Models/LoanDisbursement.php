@@ -44,5 +44,8 @@ class LoanDisbursement extends Model
         return $this->belongsTo(User::class);
     }
 
-  
+    public function cashMovement()
+    {
+        return $this->morphOne(CashMovement::class, 'reference');
+    }
 }

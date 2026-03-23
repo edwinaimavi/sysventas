@@ -55,8 +55,7 @@
                                     style="cursor:pointer;">
                                     <i class="fas fa-camera mr-1"></i> Subir foto
                                 </label>
-                                <input type="file" id="client_image" name="image" accept="image/*" class="d-none"
-                                    onchange="previewClientImage(event)">
+                                <input type="file" id="client_image" name="image" accept="image/*" class="d-none">
 
                                 <hr>
 
@@ -113,9 +112,9 @@
                                 <div class="form-row">
                                     <div class="form-group col-md-6">
                                         <label for="first_name"
-                                            class="small font-weight-bold text-secondary">NOMBRES</label>
+                                            class="small font-weight-bold text-secondary">NOMBRES <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control form-control-sm" id="first_name"
-                                            name="first_name" placeholder="Nombres">
+                                            name="first_name" placeholder="Nombres" required>
                                         <span class="invalid-feedback" id="first_name-error"></span>
                                     </div>
 

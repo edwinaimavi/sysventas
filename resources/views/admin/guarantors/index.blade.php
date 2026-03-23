@@ -37,7 +37,8 @@
         <div class="card-body p-3">
 
             <div class="table-responsive">
-                <table id="tableGuarantor" class="tableStiles table table-hover align-middle mb-0 text-center shadow-sm rounded-lg">
+                <table id="tableGuarantor"
+                    class="tableStiles table table-hover align-middle mb-0 text-center shadow-sm rounded-lg">
                     <thead class="background-color: #f5f5f5; color: #444;">
                         <tr>
                             <th>#</th>
@@ -58,8 +59,10 @@
     </div>
 
     {{-- Modals de garantes (los crearás igual que en clientes) --}}
-    @include('admin.guarantors.partials.modal')       {{-- Registrar / editar garante --}}
-    {{-- @include('admin.guarantors.partials.viewModal') --}}   {{-- Ver garante --}}
+    @include('admin.guarantors.partials.modal')
+    @include('admin.guarantors.partials.viewModal')
+    {{-- Registrar / editar garante --}}
+    {{-- @include('admin.guarantors.partials.viewModal') --}} {{-- Ver garante --}}
 @stop
 
 @push('css')
@@ -69,9 +72,10 @@
 @push('js')
     <script>
         window.routes = {
-            guarantorList: "{{ route('admin.guarantors.list') }}",     // GET lista para DataTables
-            storeGuarantor: "{{ route('admin.guarantors.store') }}",   // POST crear garante
-            deleteGuarantor: "{{ url('admin/guarantors') }}"           // DELETE /admin/guarantors/{id}
+            guarantorList: "{{ route('admin.guarantors.list') }}", // GET lista para DataTables
+            storeGuarantor: "{{ route('admin.guarantors.store') }}", // POST crear garante
+            deleteGuarantor: "{{ url('admin/guarantors') }}",
+            // DELETE /admin/guarantors/{id}
         }
     </script>
 

@@ -142,15 +142,50 @@ document.addEventListener("DOMContentLoaded", function () {
 
     });
 
+    // ======================================================
+    // GUARDAR / ACTUALIZAR GARANTE (ANTI DOBLE CLICK)
+    // ======================================================
+    let isSubmittingGuarantor = false;
 
-    // ============================
-    //   GUARDAR / ACTUALIZAR GARANTE
-    // ============================
+
     $("#guarantorForm").on("submit", function (e) {
+
         e.preventDefault();
 
+        // 🚫 Evitar doble envío
+        if (isSubmittingGuarantor) {
+            return;
+        }
+
+        // Validación rápida tipo documento
+        if (!$('#guarantor_document_type').val()) {
+
+            $('#guarantor_document_type').addClass('is-invalid');
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'Tipo de documento requerido',
+                text: 'Debe seleccionar el tipo de documento.',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3500
+            });
+
+            return;
+        }
+
+        isSubmittingGuarantor = true;
+
         const $form = $(this);
+        const $btn = $('#btnSaveGuarantor');
         const id = $form.attr("data-id");
+
+        // 🔒 Bloquear botón inmediatamente
+        $btn.prop('disabled', true);
+        $btn.html('<i class="fas fa-spinner fa-spin mr-1"></i> Guardando...');
+
+        divLoading.style.display = "flex";
 
         let url = "";
         let method = "";
@@ -166,8 +201,6 @@ document.addEventListener("DOMContentLoaded", function () {
             method = "POST";
         }
 
-        divLoading.style.display = "flex";
-
         $.ajax({
             url: url,
             type: method,
@@ -176,9 +209,10 @@ document.addEventListener("DOMContentLoaded", function () {
             contentType: false,
 
             success: function (response) {
-                divLoading.style.display = "none";
-                $("#guarantorModal").modal("hide");
 
+                resetGuarantorSubmitState();
+
+                $("#guarantorModal").modal("hide");
                 tableGuarantor.ajax.reload(null, false);
 
                 Swal.fire({
@@ -192,36 +226,54 @@ document.addEventListener("DOMContentLoaded", function () {
             },
 
             error: function (xhr) {
-                divLoading.style.display = "none";
+
+                resetGuarantorSubmitState();
 
                 if (xhr.status === 422) {
+
                     const errors = xhr.responseJSON.errors || {};
 
                     $form.find(".is-invalid").removeClass("is-invalid");
                     $form.find(".invalid-feedback").text("");
 
                     $.each(errors, function (field, messages) {
-                        // Para inputs: usamos prefix guarantor_
-                        // Ej: document_number -> #guarantor_document_number
+
                         let input = $("#guarantor_" + field);
                         if (!input.length) {
-                            // fallback por si algún campo no sigue el patrón
                             input = $("#" + field);
                         }
 
                         input.addClass("is-invalid");
-
-                        // Los spans de error están con id: field-error (document_number-error, etc.)
                         $("#" + field + "-error").text(messages[0]);
                     });
 
                 } else {
-                    Swal.fire("Error", "Error al guardar el garante.", "error");
+
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error",
+                        text: xhr.responseJSON?.message ?? "Error al guardar el garante.",
+                        toast: true,
+                        position: "top-end",
+                        timer: 3500
+                    });
                 }
             }
         });
     });
 
+
+    function resetGuarantorSubmitState() {
+
+        isSubmittingGuarantor = false;
+
+        const $btn = $('#btnSaveGuarantor');
+
+        $btn.prop('disabled', false);
+        $btn.html('<i class="fas fa-save mr-1"></i> Guardar Garante');
+
+        divLoading.style.display = "none";
+    }
     // LIMPIAR AL CERRAR EL MODAL DE GARANTE
     $('#guarantorModal').on('hidden.bs.modal', function () {
         const $form = $('#guarantorForm');
@@ -283,6 +335,245 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             });
         });
+    });
+    // ======================================================
+    //  MODAL VER GARANTE
+    // ======================================================
+    $(document).on('click', '.viewGuarantor', function () {
+
+        const full_name = $(this).data('full_name');
+        const document_type = $(this).data('document_type');
+        const document_number = $(this).data('document_number');
+        const status = $(this).data('status');
+        const phone = $(this).data('phone');
+        const alt_phone = $(this).data('alt_phone');
+        const email = $(this).data('email');
+        const address = $(this).data('address');
+        const company_name = $(this).data('company_name');
+        const ruc = $(this).data('ruc');
+        const relationship = $(this).data('relationship');
+        const occupation = $(this).data('occupation');
+        const is_external = $(this).data('is_external');
+        const photoUrl = $(this).data('photo');
+        const createdBy = $(this).data('created_by');
+        const createdAt = $(this).data('created_at');
+        const id = $(this).data('id');
+
+        const defaultAvatar =
+            'https://www.shutterstock.com/image-vector/default-avatar-profile-icon-social-600nw-1906669723.jpg';
+
+        // FOTO
+        $('#vg_photo').attr(
+            'src',
+            photoUrl || defaultAvatar
+        );
+
+        // Nombre y documento
+        $('#vg_full_name').text(full_name || '—');
+        $('#vg_document').text(
+            (document_type || '') + ' · ' + (document_number || '—')
+        );
+
+        // Estado
+        if (status === 1 || status === true || status === '1') {
+            $('#vg_status')
+                .removeClass()
+                .addClass('badge badge-success py-2 px-3')
+                .text('Activo');
+        } else {
+            $('#vg_status')
+                .removeClass()
+                .addClass('badge badge-danger py-2 px-3')
+                .text('Inactivo');
+        }
+
+        // Contacto
+        $('#vg_phone').text(phone || '—');
+        $('#vg_alt_phone').text(alt_phone || '—');
+        $('#vg_email').text(email || '—');
+        $('#vg_address').text(address || '—');
+
+        // Empresa / Persona
+        $('#vg_company').text(company_name || '—');
+        $('#vg_ruc').text(ruc || '—');
+
+        // Relación y ocupación
+        $('#vg_relationship').text(relationship || '—');
+        $('#vg_occupation').text(occupation || '—');
+
+        // Tipo de garante
+        $('#vg_type').text(is_external ? 'Externo' : 'Cliente registrado');
+
+        // Info adicional
+        $('#vg_id').text(id || '—');
+        $('#vg_created_by').text(createdBy || '—');
+        $('#vg_created_at').text(createdAt || '—');
+
+        // Mostrar modal
+        $('#viewGuarantorModal').modal('show');
+    });
+
+    // ============================
+    // BUSCAR DNI / RUC (GARANTE)
+    // ============================
+
+    const $gDocType = $('#guarantor_document_type');
+    const $gDocNumber = $('#guarantor_document_number');
+
+    function buscarDocumentoGarante() {
+
+        const docType = $gDocType.val();
+        const numero = $gDocNumber.val().trim();
+
+        if (!numero || !/^\d+$/.test(numero)) return;
+
+        // Validaciones
+        if (docType === 'DNI' && numero.length === 11) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Parece un RUC',
+                text: 'Selecciona RUC como tipo de documento',
+                toast: true,
+                position: 'top-end',
+                timer: 3000,
+                showConfirmButton: false
+            });
+            return;
+        }
+
+        if (docType === 'RUC' && numero.length === 8) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Parece un DNI',
+                text: 'Selecciona DNI como tipo de documento',
+                toast: true,
+                position: 'top-end',
+                timer: 3000,
+                showConfirmButton: false
+            });
+            return;
+        }
+
+        // 🚨 Validar que haya seleccionado tipo de documento
+        if (!docType) {
+
+            $gDocType.addClass('is-invalid');
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'Tipo de documento requerido',
+                text: 'Debe seleccionar el tipo de documento antes de ingresar el número.',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3500,
+                timerProgressBar: true
+            });
+
+            $gDocType.focus();
+            return;
+        }
+
+        $gDocNumber.prop('disabled', true);
+
+        const url = `/admin/guarantors/consultar/${numero}`;
+
+        $.ajax({
+            url: url,
+            type: 'GET',
+            success: function (response) {
+
+                $gDocNumber.prop('disabled', false);
+
+                console.log(response);
+
+                // 🚨 Si RENIEC devuelve mensaje de DNI no válido
+                if (response.data && response.data.message) {
+
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Documento no encontrado',
+                        text: 'No se encontraron datos para el DNI ingresado.',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3500,
+                        timerProgressBar: true
+                    });
+
+                    $('#guarantor_first_name').val('');
+                    $('#guarantor_last_name').val('');
+                    $('#guarantor_company_name').val('');
+                    $('#guarantor_ruc').val('');
+
+                    return;
+                }
+
+                // ✅ Si sí hay datos reales
+                if (response.type === 'DNI') {
+
+                    const p = response.data;
+
+                    $('#guarantor_first_name').val(p.nombres || '');
+                    $('#guarantor_last_name').val(
+                        ((p.apellidoPaterno || '') + ' ' + (p.apellidoMaterno || '')).trim()
+                    );
+
+                    $('#guarantor_phone').focus();
+                }
+
+                if (response.type === 'RUC') {
+
+                    const e = response.data;
+
+                    $('#guarantor_company_name').val(e.razonSocial || '');
+                    $('#guarantor_ruc').val($gDocNumber.val());
+
+                    $('#guarantor_document_type').val('RUC');
+
+                    $('#guarantor_phone').focus();
+                }
+            },
+            error: function (xhr) {
+
+                $gDocNumber.prop('disabled', false);
+
+                let message = 'Ocurrió un error al consultar el documento.';
+
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    message = xhr.responseJSON.message;
+                }
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: message,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3500
+                });
+            }
+        });
+    }
+
+    // ENTER
+    $gDocNumber.on('keyup', function (e) {
+        if (e.key === 'Enter') {
+            buscarDocumentoGarante();
+        }
+    });
+
+    // BLUR
+    $gDocNumber.on('blur', function () {
+        buscarDocumentoGarante();
+    });
+
+    $gDocType.on('change', function () {
+        if ($(this).val()) {
+            $(this).removeClass('is-invalid');
+            $('#document_type-error').text('');
+        }
     });
 
 
