@@ -257,7 +257,7 @@ function loadCashFlowReport() {
 
         const revolvente = parseFloat(res.capital_revolvente) || 0;
         const cuotas = parseFloat(res.capital_cuotas) || 0;
-        const otras = 0;
+        const otras = parseFloat(res.otras_salidas) || 0;
 
         const salidas = revolvente + cuotas + otras;
 

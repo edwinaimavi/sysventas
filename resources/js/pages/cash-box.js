@@ -347,12 +347,149 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
 
+    $(document).on('click', '.cashOut', function () {
 
+        const cashId = $(this).data('id');
+
+        $('#cash_out_id').val(cashId);
+        $('#cash_out_amount').val('');
+
+        $('#cashOutModal').modal('show');
+    });
+
+    $('#cashOutForm').on('submit', function (e) {
+
+        e.preventDefault();
+        divLoading.style.display = "flex";
+
+        const formData = new FormData(this);
+
+        $.ajax({
+            url: window.routes.cashOut, // 👈 NUEVA RUTA
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+
+            success: function (response) {
+
+                divLoading.style.display = "none";
+
+                if (!response.success) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: response.message,
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000
+                    });
+                    return;
+                }
+
+                $('#cashOutModal').modal('hide');
+                tableCash.ajax.reload(null, false);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: response.message,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            }
+        });
+    });
 
 });
 
+$(document).on('click', '.viewCash', function () {
+
+    let id = $(this).data('id');
+
+    let url = window.routes.cashMovements.replace(':id', id);
+
+    $.get(url, function (res) {
+
+        if (!res.success) return;
+
+        let data = res.data;
+
+        // 🔢 RESUMEN
+        $('#detail_opening').text('S/ ' + parseFloat(data.opening).toFixed(2));
+        $('#detail_income').text('S/ ' + parseFloat(data.income).toFixed(2));
+        $('#detail_expense').text('S/ ' + parseFloat(data.expense).toFixed(2));
+        $('#detail_balance').text('S/ ' + parseFloat(data.balance).toFixed(2));
+
+        // 🧾 TABLA
+        let html = '';
+
+        data.movements.forEach((m, index) => {
+
+            let badge = m.type === 'in'
+                ? '<span class="badge badge-success">INGRESO</span>'
+                : '<span class="badge badge-danger">EGRESO</span>';
+
+            let amount = 'S/ ' + parseFloat(m.amount).toFixed(2);
+
+            html += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${m.created_at}</td>
+                    <td>${badge}</td>
+                    <td>${m.concept}</td>
+                    <td>${amount}</td>
+                    <td>${m.user ? m.user.name : '-'}</td>
+                    <td>${m.notes ?? '-'}</td>
+                </tr>
+            `;
+        });
+
+        $('#cashDetailTable').html(html);
+
+        $('#cashDetailModal').modal('show');
+
+    });
+});
+
+$('#btnPrintCashDetail').click(function () {
+
+    let content = document.querySelector('#cashDetailModal .modal-body').innerHTML;
+
+    let win = window.open('', '', 'width=900,height=700');
+
+    win.document.write(`
+        <html>
+        <head>
+            <title>Detalle de Caja</title>
+            <style>
+                body { font-family: Arial; font-size: 12px; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { border: 1px solid #ccc; padding: 6px; text-align:center; }
+                th { background:#eee; }
+            </style>
+        </head>
+        <body>
+            <h3>Detalle de Caja</h3>
+            ${content}
+        </body>
+        </html>
+    `);
+
+    win.document.close();
+    win.print();
+});
 
 
+$('#btnPdfCashDetail').click(function () {
+
+    let id = $('#cash_out_id').val() || $('.viewCash').data('id');
+
+    let url = `/admin/cash-box/${id}/pdf`;
+
+    window.open(url, '_blank');
+});
 
 /* ===============================
    EVENTS

@@ -63,6 +63,8 @@
     @include('admin.cash-box.partials.open_modal') {{-- Apertura de caja --}}
     @include('admin.cash-box.partials.close_modal') {{-- Apertura de caja --}}
     @include('admin.cash-box.partials.cash_replenish') {{-- Apertura de caja --}}
+    @include('admin.cash-box.partials.cash_out')
+    @include('admin.cash-box.partials.cash_detail')
     {{--  @include('admin.cash.partials.close_modal') --}} {{-- Cierre de caja --}}
     {{-- @include('admin.cash.partials.movements_modal') --}} {{-- Movimientos --}}
 @stop
@@ -72,7 +74,10 @@
             cashList: "{{ route('admin.cash-box.list') }}", // GET DataTables
             openCash: "{{ route('admin.cash-box.store') }}", // POST apertura
             cashSummary: "{{ route('admin.cash-box.summary', ':id') }}",
-            cashReplenish: "{{ route('admin.cash-box.replenish') }}"
+            cashReplenish: "{{ route('admin.cash-box.replenish') }}",
+            cashOut: "{{ route('admin.cash-box.withdraw') }}",
+            cashMovements: "{{ route('admin.cash-box.movements', ':id') }}"
+
 
         }
     </script>

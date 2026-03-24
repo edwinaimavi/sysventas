@@ -289,6 +289,136 @@ class CashBoxController extends Controller
     }
 
 
+    public function withdraw(Request $request)
+    {
+        $branchId = session('branch_id');
+
+        if (! $branchId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No hay sucursal seleccionada en la sesión.'
+            ], 422);
+        }
+
+        $data = $request->validate([
+            'cash_box_id' => 'required|exists:cash_boxes,id',
+            'amount'      => 'required|numeric|min:0.01',
+            'notes'       => 'nullable|string|max:500'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // 🔒 Bloqueo para evitar concurrencia
+            $cash = CashBox::where('id', $data['cash_box_id'])
+                ->where('branch_id', $branchId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            // ❌ Validar que esté abierta
+            if ($cash->status !== 'open') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La caja está cerrada. No se puede retirar dinero.'
+                ], 422);
+            }
+
+            // 💰 Calcular saldo actual
+            $totalIncome = $cash->movements()
+                ->where('type', 'in')
+                ->sum('amount');
+
+            $totalExpense = $cash->movements()
+                ->where('type', 'out')
+                ->sum('amount');
+
+            $currentBalance = $totalIncome - $totalExpense;
+
+            // 🚫 VALIDACIÓN CLAVE
+            if ($data['amount'] > $currentBalance) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No hay suficiente dinero en caja. Saldo actual: S/ ' . number_format($currentBalance, 2)
+                ], 422);
+            }
+
+            // 🧾 Registrar egreso
+            CashMovement::create([
+                'cash_box_id' => $cash->id,
+                'branch_id'   => $branchId,
+                'type'        => 'out',
+                'concept'     => 'expense', // 👈 puedes cambiar luego a categorías
+                'amount'      => $data['amount'],
+                'notes'       => $data['notes'] ?? null,
+                'user_id'     => Auth::id()
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Retiro registrado correctamente.'
+            ]);
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+            Log::error('Error retiro caja: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al registrar el retiro.'
+            ], 500);
+        }
+    }
+
+
+    public function movements($id)
+    {
+        $cash = CashBox::with(['movements.user'])->findOrFail($id);
+
+        $movements = $cash->movements()
+            ->with('user')
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        // 🔢 Totales
+        $income = $movements->where('type', 'in')->sum('amount');
+        $expense = $movements->where('type', 'out')->sum('amount');
+        $balance = $income - $expense;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'opening' => $cash->opening_amount,
+                'income'  => $income,
+                'expense' => $expense,
+                'balance' => $balance,
+                'movements' => $movements
+            ]
+        ]);
+    }
+
+
+    public function pdf($id)
+    {
+        $cash = CashBox::with(['movements.user', 'branch'])->findOrFail($id);
+
+        $movements = $cash->movements()->with('user')->get();
+
+        $income = $movements->where('type', 'in')->sum('amount');
+        $expense = $movements->where('type', 'out')->sum('amount');
+        $balance = $income - $expense;
+
+        $pdf = \PDF::loadView('admin.cash-box.pdf.detail', compact(
+            'cash',
+            'movements',
+            'income',
+            'expense',
+            'balance'
+        ));
+
+        return $pdf->download('detalle_caja.pdf');
+    }
     /**
      * Display the specified resource.
      */

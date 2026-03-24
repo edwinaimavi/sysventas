@@ -188,7 +188,12 @@ Route::get('cash-box/{id}/summary', [CashBoxController::class, 'summary'])
 
 Route::post('cash-box/replenish', [CashBoxController::class, 'replenish'])
     ->name('cash-box.replenish');
-
+Route::post('cash-box/withdraw', [CashBoxController::class, 'withdraw'])
+    ->name('cash-box.withdraw');
+Route::get('cash-box/{id}/movements', [CashBoxController::class, 'movements'])
+    ->name('cash-box.movements');
+Route::get('cash-box/{id}/pdf', [CashBoxController::class, 'pdf'])
+    ->name('cash-box.pdf');
 
 Route::resource('cash-box', CashBoxController::class)
     ->except(['create', 'show']);
@@ -206,7 +211,7 @@ Route::get('reports/advanced/{id}', [AdvancedReportController::class, 'show'])
 
 Route::get('reports/advanced/kpis', [AdvancedReportController::class, 'kpis'])
     ->name('reports.advanced.kpis');
-Route::get('reports/advanced/branches', [AdvancedReportController::class, 'branches']); 
+Route::get('reports/advanced/branches', [AdvancedReportController::class, 'branches']);
 
 Route::get('reports/advanced/pdf', [AdvancedReportController::class, 'exportPdf'])->name('reports.advanced.pdf');
 

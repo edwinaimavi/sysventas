@@ -318,6 +318,16 @@ class ReportController extends Controller
 
         $capitalRevolvente = $loans->where('term_months', 1)->sum('amount');
         $capitalCuotas     = $loans->where('term_months', '>', 1)->sum('amount');
+        // =============================
+        // OTRAS SALIDAS (RETIROS / GASTOS)
+        // =============================
+        $otrasSalidas = CashMovement::query()
+            ->where('type', 'out')
+            ->where('concept', 'expense') // 👈 clave
+            ->when($request->branch_id, fn($q) => $q->where('branch_id', $request->branch_id))
+            ->when($from, fn($q) => $q->whereDate('created_at', '>=', $from))
+            ->when($to, fn($q) => $q->whereDate('created_at', '<=', $to))
+            ->sum('amount');
 
         // =============================
         // CÁLCULO REAL DE CAJA
@@ -355,6 +365,7 @@ class ReportController extends Controller
             'vuelto_cliente'     => round($vueltoCliente, 2),
             'capital_revolvente' => round($capitalRevolvente, 2),
             'capital_cuotas'     => round($capitalCuotas, 2),
+            'otras_salidas' => round($otrasSalidas, 2),
 
             // CAJA
             'saldo_caja' => round($saldoCaja, 2),
