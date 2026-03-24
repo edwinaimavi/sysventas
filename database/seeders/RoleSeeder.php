@@ -42,6 +42,7 @@ class RoleSeeder extends Seeder
 
         Permission::firstOrCreate(['name' => 'admin.loans.index', 'description' => 'Ver los prestamo'])->syncRoles([$role1]);
         Permission::firstOrCreate(['name' => 'admin.loans.store', 'description' => 'Crear prestamo'])->syncRoles([$role1]);
+        Permission::firstOrCreate(['name' => 'admin.loans.status', 'description' => 'Estado de Prestamo'])->syncRoles([$role1]);
         Permission::firstOrCreate(['name' => 'admin.loans.update', 'description' => 'Actualizar prestamo'])->syncRoles([$role1]);
         Permission::firstOrCreate(['name' => 'admin.loans.destroy', 'description' => 'Eliminar prestamo'])->syncRoles([$role1]);
 

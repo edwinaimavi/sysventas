@@ -7,11 +7,11 @@
             <div class="col-sm-6">
                 <h1>
                     <i class="fas fa-hand-holding-usd"></i> Préstamos
-                    {{-- @can('admin.loans.store') --}}
+                    @can('admin.loans.store')
                     <button class="btn btn-app bg-dark" type="button" data-toggle="modal" data-target="#loanModal">
                         <i class="fas fa-plus-circle"></i> Nuevo
                     </button>
-                    {{-- @endcan --}}
+                    @endcan
                 </h1>
             </div>
             <div class="col-sm-6">

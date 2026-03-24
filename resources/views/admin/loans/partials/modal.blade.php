@@ -78,10 +78,12 @@
                                     <div>
                                         <select id="status" name="status" class="form-control form-control-sm mt-1">
                                             <option value="pending" selected>Pendiente</option>
+                                             @can('admin.loans.status')
                                             <option value="approved">Aprobado</option>
                                             <option value="rejected">Rechazado</option>
                                             <option value="canceled">Cancelado</option>
                                             <option value="disbursed">Desembolsado</option> <!-- 👈 agregado -->
+                                            @endcan
                                         </select>
                                         <span class="invalid-feedback" id="status-error"></span>
                                     </div>
