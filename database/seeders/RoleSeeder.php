@@ -68,5 +68,12 @@ class RoleSeeder extends Seeder
         Permission::firstOrCreate(['name' => 'admin.branches.store', 'description' => 'Crear sucursal'])->syncRoles([$role1]);
         Permission::firstOrCreate(['name' => 'admin.branches.update', 'description' => 'Actualizar sucursal'])->syncRoles([$role1]);
         Permission::firstOrCreate(['name' => 'admin.branches.destroy', 'description' => 'Eliminar sucursal'])->syncRoles([$role1]);
+
+        Permission::firstOrCreate(['name' => 'admin.cashbox.index', 'description' => 'Ver Caja'])->syncRoles([$role1]);
+        Permission::firstOrCreate(['name' => 'admin.cashbox.store', 'description' => 'Crear Caja'])->syncRoles([$role1]);
+        Permission::firstOrCreate(['name' => 'admin.cashbox.replenishment', 'description' => 'Reposición Caja'])->syncRoles([$role1]);
+        Permission::firstOrCreate(['name' => 'admin.cashbox.expense', 'description' => 'Retirar Caja'])->syncRoles([$role1]);
+        Permission::firstOrCreate(['name' => 'admin.cashbox.close', 'description' => 'Cerrar Caja'])->syncRoles([$role1]);
+
     }
 }

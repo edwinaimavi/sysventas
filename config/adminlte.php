@@ -389,7 +389,7 @@ return [
 
 
         ],
-/* 
+        /* 
         [
             'text' => 'Reportes',
             'url' => 'admin/reports',
@@ -405,7 +405,7 @@ return [
                     'text' => 'Reportes',
                     'icon_color' => 'primary',
                     'url' => 'admin/reports',
-                   /*  "can" => 'admin.clientes.index' */
+                    /*  "can" => 'admin.clientes.index' */
 
                 ],
                 [
@@ -433,6 +433,7 @@ return [
             'url' => 'admin/cash-box',
             'icon' => 'fas  fa-door-open',
             'label_color' => 'success',
+            "can" => 'admin.cashbox.index'
         ],
         [
             'text' => 'Recordatorios',
