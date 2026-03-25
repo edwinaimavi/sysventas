@@ -10,13 +10,13 @@
                     @php
                         $hasLoansEnabled = isset($loans) && $loans->count() > 0;
                     @endphp
-
-                    <button class="btn btn-app {{ $hasLoansEnabled ? 'bg-dark' : 'bg-secondary' }}" type="button"
-                        {{ $hasLoansEnabled ? 'data-toggle=modal data-target=#paymentModal' : 'disabled' }}>
-                        <i class="fas {{ $hasLoansEnabled ? 'fa-plus-circle' : 'fa-ban' }}"></i>
-                        {{ $hasLoansEnabled ? 'Nuevo' : 'No hay préstamos habilitados' }}
-                    </button>
-
+                    @can('admin.payments.store')
+                        <button class="btn btn-app {{ $hasLoansEnabled ? 'bg-dark' : 'bg-secondary' }}" type="button"
+                            {{ $hasLoansEnabled ? 'data-toggle=modal data-target=#paymentModal' : 'disabled' }}>
+                            <i class="fas {{ $hasLoansEnabled ? 'fa-plus-circle' : 'fa-ban' }}"></i>
+                            {{ $hasLoansEnabled ? 'Nuevo' : 'No hay préstamos habilitados' }}
+                        </button>
+                    @endcan
                 </h1>
             </div>
             <div class="col-sm-6">
