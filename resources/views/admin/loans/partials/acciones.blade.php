@@ -12,7 +12,7 @@
 <div class="btn-group" role="group" aria-label="Acciones">
     @can('admin.loans.index')
         {{-- SIEMPRE permitir VER --}}
-        <button class="btn btn-outline-info btn-sm d-flex align-items-center justify-content-center viewLoan"
+        <button class="btn btn-outline-info btn-sm d-flex align-items-center justify-content-center viewLoan mr-2"
             data-bs-toggle="tooltip" data-bs-title="Ver Préstamo" data-id="{{ $loan->id }}"
             data-loan_code="{{ $loan->loan_code }}" data-amount="{{ $loan->amount }}"
             data-term_months="{{ $loan->term_months }}" data-interest_rate="{{ $loan->interest_rate }}"
@@ -30,7 +30,7 @@
     @if ($statusClean !== 'finished')
         @can('admin.loans.update')
             {{-- EDITAR PRÉSTAMO --}}
-            <button class="btn btn-outline-primary btn-sm d-flex align-items-center justify-content-center editLoan"
+            <button class="btn btn-outline-primary btn-sm d-flex align-items-center justify-content-center editLoan mr-2"
                 data-bs-toggle="tooltip" data-bs-title="Editar Préstamo" data-id="{{ $loan->id }}"
                 data-loan_code="{{ $loan->loan_code }}" data-amount="{{ $loan->amount }}"
                 data-term_months="{{ $loan->term_months }}" data-interest_rate="{{ $loan->interest_rate }}"
@@ -47,7 +47,7 @@
         @endcan
         @can('admin.loans.increments')
             {{-- BOTÓN PARA INCREMENTAR --}}
-            <button class="btn btn-outline-warning btn-sm d-flex align-items-center justify-content-center incrementLoan"
+            <button class="btn btn-outline-warning btn-sm d-flex align-items-center justify-content-center incrementLoan mr-2"
                 data-bs-toggle="tooltip" data-bs-title="Ampliar / Incrementar préstamo" data-id="{{ $loan->id }}"
                 data-loan_code="{{ $loan->loan_code }}" data-client_name="{{ optional($loan->client)->full_name }}"
                 data-amount="{{ $loan->amount }}" data-status="{{ $loan->status }}">
@@ -72,7 +72,7 @@
         @endphp
         @can('admin.loans.disbursements')
             <button
-                class="btn btn-sm d-flex align-items-center justify-content-center disbursementModal {{ $btnClass }}"
+                class="btn btn-sm d-flex align-items-center justify-content-center disbursementModal {{ $btnClass }} mr-2"
                 data-bs-toggle="tooltip" data-bs-title="{{ $tooltip }}" data-loan_id="{{ $loan->id }}"
                 data-loan_code="{{ $loan->loan_code }}" data-client_name="{{ optional($loan->client)->full_name }}"
                 data-amount="{{ $loan->amount }}" data-total_disbursed="{{ $totalDisbursed }}"
@@ -84,7 +84,7 @@
         {{-- ✅ BOTÓN REFINANCIAR: SOLO SI TOCA (vencido + disbursed + saldo>0 + sin refinance activo) --}}
         @if ($canRefinance)
             @can('admin.loans.refinance')
-                <button class="btn btn-outline-dark btn-sm d-flex align-items-center justify-content-center refinanceLoan"
+                <button class="btn btn-outline-dark btn-sm d-flex align-items-center justify-content-center refinanceLoan mr-2"
                     data-bs-toggle="tooltip" data-bs-title="Refinanciar" data-id="{{ $loan->id }}"
                     data-loan_code="{{ $loan->loan_code }}" data-client_name="{{ optional($loan->client)->full_name }}"
                     data-due_date="{{ $loan->due_date ? \Carbon\Carbon::parse($loan->due_date)->format('Y-m-d') : '' }}"

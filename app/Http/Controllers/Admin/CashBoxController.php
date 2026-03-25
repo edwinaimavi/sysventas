@@ -14,9 +14,9 @@ use Illuminate\Support\Facades\Log;
 
 class CashBoxController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    public function __construct(){
+        $this->middleware('can:admin.cashbox.index')->only('index','list');
+    }
     public function index()
     {
         return view('admin.cash-box.index');

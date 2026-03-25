@@ -405,14 +405,14 @@ return [
                     'text' => 'Reportes',
                     'icon_color' => 'primary',
                     'url' => 'admin/reports',
-                    /*  "can" => 'admin.clientes.index' */
+                    "can" => 'admin.reminders.index' 
 
                 ],
                 [
                     'text' => 'Resumen General',
                     'icon_color' => 'yellow',
                     'url' => 'admin/reports/advanced',
-                    /* "can" => 'admin.guarantors.index' */
+                    "can" => 'admin.reminders.index' 
 
                 ],
 
@@ -440,12 +440,14 @@ return [
             'url' => 'admin/reminders',
             'icon' => 'fas fa-bell',
             'label_color' => 'success',
+             "can" => 'admin.reminders.index'
         ],
         [
             'text' => 'Sucursales',
             'url' => 'admin/branches',
             'icon' => 'fas fa-code-branch',
             'label_color' => 'success',
+            "can" => 'admin.branches.index'
         ],
 
 
