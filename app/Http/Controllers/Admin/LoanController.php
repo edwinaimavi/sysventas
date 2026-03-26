@@ -506,7 +506,6 @@ class LoanController extends Controller
 
     public function destroy(Loan $loan)
     {
-        // ❌ No permitir borrar préstamos finalizados
         if ($loan->status === 'finished') {
             return response()->json([
                 'status'  => 'error',
@@ -515,13 +514,32 @@ class LoanController extends Controller
         }
 
         try {
-            $loan->delete();
+            DB::transaction(function () use ($loan) {
+
+                // 🔥 1. Obtener desembolsos
+                $disbursements = $loan->disbursements;
+
+                foreach ($disbursements as $d) {
+
+                    // 🔥 2. eliminar movimientos relacionados
+                    \App\Models\CashMovement::where('reference_table', 'loan_disbursements')
+                        ->where('reference_id', $d->id)
+                        ->delete();
+
+                    // 🔥 3. eliminar desembolso (dispara eventos también)
+                    $d->delete();
+                }
+
+                // 🔥 4. eliminar préstamo
+                $loan->delete();
+            });
 
             return response()->json([
                 'status'  => 'success',
                 'message' => 'Préstamo eliminado correctamente.'
             ]);
         } catch (\Throwable $e) {
+
             Log::error("Error eliminando préstamo: " . $e->getMessage());
 
             return response()->json([

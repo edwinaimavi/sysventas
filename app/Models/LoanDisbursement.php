@@ -27,6 +27,16 @@ class LoanDisbursement extends Model
         'notes',
     ];
 
+    protected static function booted()
+    {
+        static::deleting(function ($disbursement) {
+
+            \App\Models\CashMovement::where('reference_table', 'loan_disbursements')
+                ->where('reference_id', $disbursement->id)
+                ->delete();
+        });
+    }
+
 
     // Relaciones
     public function loan()

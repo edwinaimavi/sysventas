@@ -47,10 +47,18 @@
         @endcan
         @can('admin.loans.increments')
             {{-- BOTÓN PARA INCREMENTAR --}}
-            <button class="btn btn-outline-warning btn-sm d-flex align-items-center justify-content-center incrementLoan mr-2"
-                data-bs-toggle="tooltip" data-bs-title="Ampliar / Incrementar préstamo" data-id="{{ $loan->id }}"
-                data-loan_code="{{ $loan->loan_code }}" data-client_name="{{ optional($loan->client)->full_name }}"
-                data-amount="{{ $loan->amount }}" data-status="{{ $loan->status }}">
+            @php
+                $hasDisbursement = (float) $totalDisbursed > 0;
+            @endphp
+
+            <button
+                class="btn btn-sm d-flex align-items-center justify-content-center incrementLoan mr-2 
+    {{ $hasDisbursement ? 'btn-outline-warning' : 'btn-secondary' }}"
+                data-bs-toggle="tooltip"
+                data-bs-title="{{ $hasDisbursement ? 'Ampliar / Incrementar préstamo' : 'Debe tener al menos un desembolso' }}"
+                data-id="{{ $loan->id }}" data-loan_code="{{ $loan->loan_code }}"
+                data-client_name="{{ optional($loan->client)->full_name }}" data-amount="{{ $loan->amount }}"
+                data-status="{{ $loan->status }}" {{ !$hasDisbursement ? 'disabled' : '' }}>
                 <i class="fas fa-plus-circle"></i>
             </button>
         @endcan
@@ -84,7 +92,8 @@
         {{-- ✅ BOTÓN REFINANCIAR: SOLO SI TOCA (vencido + disbursed + saldo>0 + sin refinance activo) --}}
         @if ($canRefinance)
             @can('admin.loans.refinance')
-                <button class="btn btn-outline-dark btn-sm d-flex align-items-center justify-content-center refinanceLoan mr-2"
+                <button
+                    class="btn btn-outline-dark btn-sm d-flex align-items-center justify-content-center refinanceLoan mr-2"
                     data-bs-toggle="tooltip" data-bs-title="Refinanciar" data-id="{{ $loan->id }}"
                     data-loan_code="{{ $loan->loan_code }}" data-client_name="{{ optional($loan->client)->full_name }}"
                     data-due_date="{{ $loan->due_date ? \Carbon\Carbon::parse($loan->due_date)->format('Y-m-d') : '' }}"

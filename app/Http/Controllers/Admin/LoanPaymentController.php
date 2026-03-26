@@ -25,6 +25,16 @@ use App\Models\LoanPaymentExpense;
 
 class LoanPaymentController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:admin.payments.index')->only('index', 'list');
+        $this->middleware('can:admin.payments.store')->only('store');
+        $this->middleware('can:admin.payments.update')->only('update');
+        $this->middleware('can:admin.payments.destroy')->only('destroy');
+
+
+
+    }
     /**
      * Display a listing of the resource.
      */

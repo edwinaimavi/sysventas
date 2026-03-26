@@ -191,7 +191,18 @@ class LoanDisbursementController extends Controller
             $data['disbursement_code'] = $this->generateDisbursementCode();
 
             $disbursement = LoanDisbursement::create($data);
+            // 🔥 Detectar si es incremento
+            $hasIncrement = \App\Models\LoanIncrement::where('loan_id', $loan->id)->exists();
 
+            // 🔥 Contar desembolsos ANTES de este (porque aún no se crea el nuevo)
+            $previousDisbursements = LoanDisbursement::where('loan_id', $loan->id)->count();
+
+            // 🔥 Definir concepto
+            $concept = 'loan_disbursement';
+
+            if ($hasIncrement && $previousDisbursements >= 1) {
+                $concept = 'loan_increment';
+            }
             /* ============================
                MOVIMIENTO DE CAJA (SALIDA)
             ============================ */
@@ -199,9 +210,10 @@ class LoanDisbursementController extends Controller
                 'cash_box_id'     => $cashBox->id,
                 'branch_id'       => $branchId,
                 'type'            => 'out',
-                'concept'         => 'loan_disbursement',
+                'concept'         => $concept,
                 'amount'          => $disbursement->amount,
                 'reference_table' => 'loan_disbursements',
+                'notes'       => $data['notes'] ?? null,
                 'reference_id'    => $disbursement->id,
                 'user_id'     => Auth::id()
             ]);

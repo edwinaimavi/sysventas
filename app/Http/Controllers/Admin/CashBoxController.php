@@ -14,8 +14,9 @@ use Illuminate\Support\Facades\Log;
 
 class CashBoxController extends Controller
 {
-    public function __construct(){
-        $this->middleware('can:admin.cashbox.index')->only('index','list');
+    public function __construct()
+    {
+        $this->middleware('can:admin.cashbox.index')->only('index', 'list');
     }
     public function index()
     {
@@ -168,6 +169,7 @@ class CashBoxController extends Controller
         $data = $request->validate([
             'opening_amount' => 'required|numeric|min:0',
             'opened_at'      => 'required|date',
+            'notes'          => 'nullable|string|max:500',
         ]);
 
         try {
@@ -200,7 +202,11 @@ class CashBoxController extends Controller
                 'concept'     => 'opening',
                 'amount'      => $cash->opening_amount,
                 'notes'       => $data['notes'] ?? null,
-                'user_id'     => Auth::id()
+                'user_id'     => Auth::id(),
+
+                // 🔥 NUEVO (CLAVE)
+                'reference_table' => 'cash_boxes',
+                'reference_id'    => $cash->id,
             ]);
 
 

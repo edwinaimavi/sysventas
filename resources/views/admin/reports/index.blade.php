@@ -219,7 +219,7 @@
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td>Intereses cobrados</td>
+                                            <td>Otros Ingresos</td>
                                             <td class="text-right font-weight-bold" id="op_intereses_cobrados">S/ 0.00
                                             </td>
                                         </tr>

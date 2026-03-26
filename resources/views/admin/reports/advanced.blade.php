@@ -168,7 +168,7 @@ TABLA PRINCIPAL
                             <th>Pagado</th>
                             <th>Capital</th>
                             <th>Interés</th>
-                            <th>Gastos</th>
+                            <th>O.Ingresos</th>
                             <th>Saldo</th>
                             <th>Estado</th>
                             <th>Acciones</th>
