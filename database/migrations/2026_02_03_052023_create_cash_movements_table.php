@@ -17,6 +17,7 @@ return new class extends Migration {
                 'opening',
                 'capital_replenishment',   
                 'capital',
+                'loan_payment_expense',
                 'loan_disbursement',
                 'loan_increment',
                 'loan_payment',

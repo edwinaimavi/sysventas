@@ -31,9 +31,6 @@ class LoanPaymentController extends Controller
         $this->middleware('can:admin.payments.store')->only('store');
         $this->middleware('can:admin.payments.update')->only('update');
         $this->middleware('can:admin.payments.destroy')->only('destroy');
-
-
-
     }
     /**
      * Display a listing of the resource.
@@ -468,20 +465,37 @@ class LoanPaymentController extends Controller
                     'type'           => 'in',
                     'concept'        => 'capital',
                     'amount'         => $payment->amount,
-                    'reference_id'   => $payment->id,
+
                     'reference_type' => 'loan_payments',
+                    'reference_table' => 'loan_payments',
+                    'reference_id'    => $payment->id,
                 ]);
 
-                // 2️⃣ Ingreso por gasto adicional (SI EXISTE)
+                $expense = null;
+
                 if (($expenseData['expense_amount'] ?? 0) > 0.009) {
+                    $expense = LoanPaymentExpense::create([
+                        'loan_payment_id'    => $payment->id,
+                        'branch_id'          => $branchId,
+                        'user_id'            => Auth::id(),
+                        'expense_amount'     => $expenseData['expense_amount'],
+                        'expense_type'       => $expenseData['expense_type'],
+                        'expense_description' => $expenseData['expense_description'],
+                    ]);
+                }
+
+                // 2️⃣ Ingreso por gasto adicional (SI EXISTE)
+                if ($expense) {
                     CashMovement::create([
-                        'cash_box_id'    => $cashBox->id,
-                        'branch_id'      => $branchId,
-                        'type'           => 'in',
-                        'concept'        => 'capital',
-                        'amount'         => $expenseData['expense_amount'],
-                        'reference_id'   => $payment->id,
-                        'reference_type' => 'loan_payments',
+                        'cash_box_id'     => $cashBox->id,
+                        'branch_id'       => $branchId,
+                        'type'            => 'in',
+                        'concept'         => 'loan_payment_expense',
+                        'amount'          => $expense->expense_amount,
+                        'reference_type'  => 'loan_payment_expenses',
+                        'reference_table' => 'loan_payment_expenses',
+                        'reference_id'    => $expense->id,
+                        'user_id'         => Auth::id(),
                     ]);
                 }
             }
