@@ -465,7 +465,13 @@ function initDetailTable(type) {
         { data: 'index' },
         { data: 'date' },
         { data: 'type' },
-        { data: 'concept' },
+        {
+            data: function (row) {
+                return row.concept && row.concept !== ''
+                    ? row.concept
+                    : row.concepto;
+            }
+        },
         { data: 'client' },
         { data: 'loan' },
         {
@@ -482,7 +488,7 @@ function initDetailTable(type) {
         headerHtml = headerHtml.replace('</tr>', `
             <th class="text-right">Capital</th>
             <th class="text-right">Interés</th>
-            <th class="text-right">Gastos</th>
+            <th class="text-right">O. Ingresos</th>
         </tr>`);
 
         footerHtml += `
@@ -642,13 +648,16 @@ function initCashBook() {
         columns: [
             { data: 'fecha' },
             { data: 'concepto' },
+            { data: 'notas' },
+            { data: 'cliente' },
+            { data: 'prestamo' },
             {
                 data: 'ingreso',
-                render: d => d > 0 ? formatMoney(d) : ''
+                render: d => d > 0 ? formatMoney(d) : '--'
             },
             {
                 data: 'salida',
-                render: d => d > 0 ? formatMoney(d) : ''
+                render: d => d > 0 ? formatMoney(d) : '--'
             },
             {
                 data: 'saldo',

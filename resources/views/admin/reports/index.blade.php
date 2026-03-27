@@ -358,7 +358,7 @@
 
 
                                         <tr>
-                                            <td>Gastos extras cobrados</td>
+                                            <td>Otros Ingresos</td>
                                             <td class="text-right font-weight-bold" id="cash_gastos_extras">
                                                 S/ 0.00
                                             </td>
@@ -465,6 +465,9 @@
                                 <tr>
                                     <th>Fecha</th>
                                     <th>Concepto</th>
+                                    <th>observación</th>
+                                    <th>Cliente</th>
+                                    <th>Prestamo</th>
                                     <th>Ingreso</th>
                                     <th>Salida</th>
                                     <th>Saldo</th>

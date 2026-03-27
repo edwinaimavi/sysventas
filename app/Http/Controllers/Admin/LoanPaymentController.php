@@ -257,6 +257,8 @@ class LoanPaymentController extends Controller
      */
     public function store(Request $request)
     {
+       
+        
         $branchId = session('branch_id');
 
         if (!$branchId) {
@@ -303,7 +305,8 @@ class LoanPaymentController extends Controller
             'status'            => 'required|in:completed,pending,reversed',
             'remaining_balance' => 'nullable|numeric|min:0',
 
-            'notes' => 'nullable|string',
+            'notes' => 'nullable|string|max:500',
+            'expense_description'=> 'nullable|string|max:500',
             //VALIDACION PARA LOS DATOS DE LOS PAGOS ADICIONALES POR COMISION 
             'expense_amount'      => 'nullable|numeric|min:0',
             'expense_type'        => 'nullable|string|max:50',
@@ -403,7 +406,7 @@ class LoanPaymentController extends Controller
             $payment = LoanPayment::create($data);
 
             // 1.1) Guardar gasto adicional (si existe)
-            if (($expenseData['expense_amount'] ?? 0) > 0.009) {
+        /*     if (($expenseData['expense_amount'] ?? 0) > 0.009) {
                 LoanPaymentExpense::create([
                     'loan_payment_id'    => $payment->id,
                     'branch_id'          => $branchId,
@@ -412,7 +415,7 @@ class LoanPaymentController extends Controller
                     'expense_type'       => $expenseData['expense_type'],
                     'expense_description' => $expenseData['expense_description'],
                 ]);
-            }
+            } */
 
 
             if ($payment->status === 'completed') {
@@ -465,10 +468,11 @@ class LoanPaymentController extends Controller
                     'type'           => 'in',
                     'concept'        => 'capital',
                     'amount'         => $payment->amount,
-
+                    'notes'       => $data['notes'] ?? null,
                     'reference_type' => 'loan_payments',
                     'reference_table' => 'loan_payments',
                     'reference_id'    => $payment->id,
+                    'user_id'         => Auth::id(),
                 ]);
 
                 $expense = null;
@@ -492,6 +496,7 @@ class LoanPaymentController extends Controller
                         'type'            => 'in',
                         'concept'         => 'loan_payment_expense',
                         'amount'          => $expense->expense_amount,
+                        'notes'       => $expense->expense_description,
                         'reference_type'  => 'loan_payment_expenses',
                         'reference_table' => 'loan_payment_expenses',
                         'reference_id'    => $expense->id,

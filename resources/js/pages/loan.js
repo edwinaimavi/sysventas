@@ -50,6 +50,9 @@ document.addEventListener("DOMContentLoaded", function () {
             { data: 'client_name', name: 'client_name' },
             { data: 'guarantor_name', name: 'guarantor_name' },
             { data: 'amount', name: 'amount' },
+            // 🔥 NUEVAS COLUMNAS
+            { data: 'disbursement_date', name: 'disbursement_date' },
+            { data: 'due_date', name: 'due_date' },
             { data: 'term_months', name: 'term_months' },
             { data: 'status', name: 'status' },
             { data: 'acciones', name: 'acciones', orderable: false, searchable: false }

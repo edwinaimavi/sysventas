@@ -388,9 +388,12 @@ class CashBoxController extends Controller
             ->get();
 
         // 🔢 Totales
-        $income = $movements->where('type', 'in')->sum('amount');
+        $income = $movements
+            ->where('type', 'in')
+            ->where('concept', '!=', 'opening')
+            ->sum('amount');
         $expense = $movements->where('type', 'out')->sum('amount');
-        $balance = $income - $expense;
+        $balance = ($cash->opening_amount + $income) - $expense;
 
         return response()->json([
             'success' => true,
@@ -411,9 +414,12 @@ class CashBoxController extends Controller
 
         $movements = $cash->movements()->with('user')->get();
 
-        $income = $movements->where('type', 'in')->sum('amount');
+        $income = $income = $movements
+            ->where('type', 'in')
+            ->where('concept', '!=', 'opening')
+            ->sum('amount');
         $expense = $movements->where('type', 'out')->sum('amount');
-        $balance = $income - $expense;
+        $balance = ($cash->opening_amount + $income) - $expense;
 
         $pdf = \PDF::loadView('admin.cash-box.pdf.detail', compact(
             'cash',
@@ -421,10 +427,12 @@ class CashBoxController extends Controller
             'income',
             'expense',
             'balance'
-        ));
+        ))->setPaper('a4', 'landscape');
 
         return $pdf->download('detalle_caja.pdf');
     }
+
+
     /**
      * Display the specified resource.
      */

@@ -438,7 +438,7 @@ $(document).on('click', '.viewCash', function () {
                     <td>${index + 1}</td>
                     <td>${m.created_at}</td>
                     <td>${badge}</td>
-                    <td>${m.concept}</td>
+                    <td>${translateConcept(m.concept)}</td>
                     <td>${amount}</td>
                     <td>${m.user ? m.user.name : '-'}</td>
                     <td>${m.notes ?? '-'}</td>
@@ -452,6 +452,21 @@ $(document).on('click', '.viewCash', function () {
 
     });
 });
+
+//traducir el concepto 
+function translateConcept(concept) {
+    const map = {
+        expense: 'Retiro de Caja',
+        loan_payment_expense: 'Otros Ingresos',
+        capital: 'Pago de préstamo',
+        loan_disbursement: 'Desembolso de Préstamo',
+        loan_increment: 'Incremento de Préstamo',
+        opening: 'Apertura de Caja',
+    };
+
+    return map[concept] || concept.replaceAll('_', ' ')
+        .replace(/\b\w/g, l => l.toUpperCase());
+}
 
 $('#btnPrintCashDetail').click(function () {
 

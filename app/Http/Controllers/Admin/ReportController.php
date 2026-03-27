@@ -969,7 +969,7 @@ class ReportController extends Controller
                         'index'   => $i + 1,
                         'date'    => $m->created_at,
                         'type'    => 'Salida',
-                        'concept' => ucfirst(str_replace('_', ' ', $m->concept)),
+                        'concepto' => $this->translateConcept($m->concept),
                         'client'  => $client,
                         'loan'    => $loan,
                         'amount'  => $m->amount,
@@ -1004,17 +1004,83 @@ class ReportController extends Controller
 
             $saldo = $saldo + $ingreso - $salida;
 
+            // 🔥 ESTA LÍNEA FALTABA
+            $ctx = $this->getMovementContext($m);
+
             return [
                 'fecha' => $m->created_at->format('Y-m-d H:i'),
-                'concepto' => ucfirst(str_replace('_', ' ', $m->concept)),
+                'concepto' => $this->translateConcept($m->concept),
+                'notas' => $m->notes,
+
+                'cliente' => $ctx['client'] ?? '-',
+                'prestamo' => $ctx['loan_code'] ?? '-',
+
                 'ingreso' => $ingreso,
                 'salida' => $salida,
                 'saldo' => $saldo
             ];
         });
-
         return response()->json([
             'data' => $rows
         ]);
+    }
+
+    private function translateConcept($concept)
+    {
+        $map = [
+            'expense'              => 'Retiro de Caja',
+            'loan_payment_expense' => 'Otros Ingresos',
+            'capital'              => 'Pago de préstamo',
+            'loan_disbursement'    => 'Desembolso de Préstamo',
+            'loan_increment'       => 'Incremento de Préstamo',
+            'opening'              => 'Apertura de Caja',
+            'capital_replenishment'=> 'Reposición de Caja'
+        ];
+
+        return $map[$concept] ?? ucfirst(str_replace('_', ' ', $concept));
+    }
+
+    private function getMovementContext($m)
+    {
+        $client = null;
+        $loanCode = null;
+
+        switch ($m->reference_table) {
+
+            case 'loan_payments':
+                $payment = \App\Models\LoanPayment::with('loan.client')
+                    ->find($m->reference_id);
+
+                if ($payment && $payment->loan) {
+                    $client = $payment->loan->client->full_name ?? null;
+                    $loanCode = $payment->loan->loan_code ?? null;
+                }
+                break;
+
+            case 'loan_payment_expenses':
+                $expense = \App\Models\LoanPaymentExpense::with('payment.loan.client')
+                    ->find($m->reference_id);
+
+                if ($expense && $expense->payment && $expense->payment->loan) {
+                    $client = $expense->payment->loan->client->full_name ?? null;
+                    $loanCode = $expense->payment->loan->loan_code ?? null;
+                }
+                break;
+
+            case 'loan_disbursements':
+                $disbursement = \App\Models\LoanDisbursement::with('loan.client')
+                    ->find($m->reference_id);
+
+                if ($disbursement && $disbursement->loan) {
+                    $client = $disbursement->loan->client->full_name ?? null;
+                    $loanCode = $disbursement->loan->loan_code ?? null;
+                }
+                break;
+        }
+
+        return [
+            'client' => $client,
+            'loan_code' => $loanCode
+        ];
     }
 }

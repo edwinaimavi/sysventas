@@ -8,9 +8,9 @@
                 <h1>
                     <i class="fas fa-hand-holding-usd"></i> Préstamos
                     @can('admin.loans.store')
-                    <button class="btn btn-app bg-dark" type="button" data-toggle="modal" data-target="#loanModal">
-                        <i class="fas fa-plus-circle"></i> Nuevo
-                    </button>
+                        <button class="btn btn-app bg-dark" type="button" data-toggle="modal" data-target="#loanModal">
+                            <i class="fas fa-plus-circle"></i> Nuevo
+                        </button>
                     @endcan
                 </h1>
             </div>
@@ -47,6 +47,8 @@
                             <th>CLIENTE</th>
                             <th>GARANTE</th>
                             <th>MONTO</th>
+                            <th>DESEMBOLSO</th> <!-- 🔥 -->
+                            <th>VENCIMIENTO</th> <!-- 🔥 -->
                             <th>PLAZO (MESES)</th>
                             <th>ESTADO</th>
                             <th></th>
@@ -133,6 +135,88 @@
             padding: .18rem .5rem;
             border-radius: 999px;
             font-size: .74rem;
+        }
+
+
+        /*estilos de desembolso y vencimient*/
+        .loan-date-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 12px;
+            min-width: 130px;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .loan-date-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+        }
+
+        /* LABEL */
+        .loan-date-label {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 3px;
+        }
+
+        /* VALOR */
+        .loan-date-value {
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* EXTRA TEXTO */
+        .loan-date-extra {
+            font-size: 11px;
+            margin-top: 3px;
+        }
+
+        /* COLORES */
+
+        /* 🔵 Desembolso */
+        .loan-date-disbursement {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            color: #0d47a1;
+        }
+
+        /* 🟢 OK */
+        .loan-date-due.ok {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            color: #1b5e20;
+        }
+
+        /* 🟡 Warning */
+        .loan-date-due.warning {
+            background: linear-gradient(135deg, #fff8e1, #ffe082);
+            color: #e65100;
+        }
+
+        /* 🔴 Overdue */
+        .loan-date-due.overdue {
+            background: linear-gradient(135deg, #ffebee, #ffcdd2);
+            color: #b71c1c;
+            animation: pulse 1.5s infinite;
+        }
+
+        /* 🔥 animación vencido */
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(183, 28, 28, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 6px rgba(183, 28, 28, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(183, 28, 28, 0);
+            }
         }
     </style>
 @endpush

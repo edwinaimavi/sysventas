@@ -134,7 +134,57 @@ class LoanController extends Controller
                 </div>
             ';
             })
+            ->addColumn('disbursement_date', function ($loan) {
 
+                if (!$loan->disbursement_date) return '—';
+
+                $date = \Carbon\Carbon::parse($loan->disbursement_date);
+
+                return '
+        <div class="loan-date-card loan-date-disbursement" data-bs-toggle="tooltip" title="Fecha en que se entregó el préstamo">
+            
+            <div class="loan-date-value">
+                <i class="bi bi-cash-coin"></i>
+                ' . $date->format('d/m/Y') . '
+            </div>
+        </div>
+    ';
+            })
+
+            ->addColumn('due_date', function ($loan) {
+
+                if (!$loan->due_date) return '—';
+
+                $date = \Carbon\Carbon::parse($loan->due_date);
+                $today = now();
+
+                $days = (int) $today->diffInDays($date, false);
+
+                if ($days < 0) {
+                    $class = 'overdue';
+                    $icon  = 'bi-exclamation-triangle-fill';
+                    $text  = 'Vencido hace ' . abs($days) . ' días';
+                } elseif ($days <= 5) {
+                    $class = 'warning';
+                    $icon  = 'bi-exclamation-circle-fill';
+                    $text  = 'Vence en ' . $days . ' días';
+                } else {
+                    $class = 'ok';
+                    $icon  = 'bi-check-circle-fill';
+                    $text  = 'Al día';
+                }
+
+                return '
+        <div class="loan-date-card loan-date-due ' . $class . '" data-bs-toggle="tooltip" title="' . $text . '">
+            
+            <div class="loan-date-value">
+                <i class="bi ' . $icon . '"></i>
+                ' . $date->format('d/m/Y') . '
+            </div>
+            <div class="loan-date-extra">' . $text . '</div>
+        </div>
+    ';
+            })
             ->addColumn('acciones', function ($loan) {
 
                 $statusOriginal = $loan->status;
@@ -158,7 +208,7 @@ class LoanController extends Controller
                 ))->render();
             })
 
-            ->rawColumns(['status', 'acciones'])
+            ->rawColumns(['status', 'acciones', 'disbursement_date', 'due_date'])
             ->make(true);
     }
 
