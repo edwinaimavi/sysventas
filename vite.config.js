@@ -17,6 +17,7 @@ export default defineConfig({
                 'resources/js/pages/loan.js',
                 'resources/js/pages/report.js',
                 'resources/js/pages/reminder.js',
+                'resources/js/pages/cash-box.js',
             ],
             refresh: true,
         }),

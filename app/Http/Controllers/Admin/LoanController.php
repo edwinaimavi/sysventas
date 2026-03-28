@@ -158,6 +158,28 @@ class LoanController extends Controller
                 $date = \Carbon\Carbon::parse($loan->due_date);
                 $today = now();
 
+                // 🔥 NUEVA REGLA: SI YA FINALIZÓ
+                if ($loan->status === 'finished') {
+
+                    return '
+            <div class="loan-date-card loan-date-due finished" 
+                 data-bs-toggle="tooltip" 
+                 title="Préstamo finalizado">
+
+                <div class="loan-date-value">
+                    <i class="bi bi-check2-circle"></i>
+                    ' . $date->format('d/m/Y') . '
+                </div>
+
+                <div class="loan-date-extra">Completado</div>
+            </div>
+        ';
+                }
+
+                // ===========================
+                // LÓGICA NORMAL
+                // ===========================
+
                 $days = (int) $today->diffInDays($date, false);
 
                 if ($days < 0) {
@@ -176,11 +198,12 @@ class LoanController extends Controller
 
                 return '
         <div class="loan-date-card loan-date-due ' . $class . '" data-bs-toggle="tooltip" title="' . $text . '">
-            
+
             <div class="loan-date-value">
                 <i class="bi ' . $icon . '"></i>
                 ' . $date->format('d/m/Y') . '
             </div>
+
             <div class="loan-date-extra">' . $text . '</div>
         </div>
     ';

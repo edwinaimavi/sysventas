@@ -204,6 +204,17 @@
             animation: pulse 1.5s infinite;
         }
 
+        /* ⚫ FINALIZADO */
+        .loan-date-due.finished {
+            background: linear-gradient(135deg, #424242, #757575);
+            color: #fff;
+            border: 2px solid #616161;
+        }
+
+        .loan-date-due.finished .loan-date-extra {
+            color: #e0e0e0;
+        }
+
         /* 🔥 animación vencido */
         @keyframes pulse {
             0% {
