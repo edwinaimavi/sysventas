@@ -258,21 +258,42 @@ TABLA PRINCIPAL
                 // 🔹 CRONOGRAMA
                 res.schedules.forEach(s => {
 
-                    let estado = s.status == 'paid' ?
-                        '<span class="badge badge-success">Pagado</span>' :
-                        '<span class="badge badge-warning">Pendiente</span>';
+                    let cuota = parseFloat(s.payment);
+                    let pagado = parseFloat(s.paid_amount || 0);
+                    let restante = cuota - pagado;
+
+                    let estado = '';
+                    let color = '';
+                    let textoExtra = '';
+
+                    if (s.status === 'paid') {
+                        estado = 'Pagado';
+                        color = 'success';
+                    } else if (s.status === 'partial') {
+                        estado = 'Parcial';
+                        color = 'warning';
+                        textoExtra =
+                            `<br><small class="text-danger fw-bold">Falta: S/ ${restante.toFixed(2)}</small>`;
+                    } else {
+                        estado = 'Pendiente';
+                        color = 'secondary';
+                    }
 
                     $('#tableSchedules tbody').append(`
-                <tr>
-                    <td>${s.installment_no}</td>
-                    <td>${s.due_date}</td>
-                    <td>S/ ${parseFloat(s.amortization || 0).toFixed(2)}</td>
-
-                    <td>S/ ${parseFloat(s.interest).toFixed(2)}</td>
-                    <td>S/ ${parseFloat(s.payment).toFixed(2)}</td>
-                    <td>${estado}</td>
-                </tr>
-            `);
+        <tr>
+            <td>${s.installment_no}</td>
+            <td>${s.due_date}</td>
+            <td>S/ ${parseFloat(s.amortization || 0).toFixed(2)}</td>
+            <td>S/ ${parseFloat(s.interest).toFixed(2)}</td>
+            <td>S/ ${cuota.toFixed(2)}</td>
+            <td>
+                <span class="badge badge-${color}">
+                    ${estado}
+                </span>
+                ${textoExtra}
+            </td>
+        </tr>
+    `);
                 });
 
                 // 🔹 PAGOS

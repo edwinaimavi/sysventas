@@ -219,13 +219,13 @@
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td>Otros Ingresos</td>
+                                            <td>Interses</td>
                                             <td class="text-right font-weight-bold" id="op_intereses_cobrados">S/ 0.00
                                             </td>
                                         </tr>
 
                                         <tr>
-                                            <td>Gastos extras</td>
+                                            <td>Otros Ingresos</td>
                                             <td class="text-right font-weight-bold" id="op_gastos_adicionales">S/ 0.00
                                             </td>
                                         </tr>

@@ -402,6 +402,60 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+
+
+
+
+
+    $('#cashCloseForm').on('submit', function (e) {
+
+        e.preventDefault();
+        divLoading.style.display = "flex";
+
+        let formData = new FormData(this);
+
+        $.ajax({
+            url: window.routes.cashClose,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+
+            success: function (response) {
+
+                divLoading.style.display = "none";
+
+                if (!response.success) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: response.message
+                    });
+                    return;
+                }
+
+                $('#cashCloseModal').modal('hide');
+                tableCash.ajax.reload(null, false);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Caja cerrada correctamente',
+                    text: `Diferencia: S/ ${response.data.difference.toFixed(2)}`,
+                    confirmButtonText: 'OK'
+                });
+            },
+
+            error: function () {
+                divLoading.style.display = "none";
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error al cerrar caja'
+                });
+            }
+        });
+
+    });
+
 });
 
 $(document).on('click', '.viewCash', function () {

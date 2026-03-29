@@ -188,10 +188,16 @@ Route::get('cash-box/{id}/summary', [CashBoxController::class, 'summary'])
 
 Route::post('cash-box/replenish', [CashBoxController::class, 'replenish'])
     ->name('cash-box.replenish');
+
 Route::post('cash-box/withdraw', [CashBoxController::class, 'withdraw'])
     ->name('cash-box.withdraw');
+
 Route::get('cash-box/{id}/movements', [CashBoxController::class, 'movements'])
     ->name('cash-box.movements');
+
+Route::post('cash-box/close', [CashBoxController::class, 'close'])
+    ->name('cash-box.close');
+
 Route::get('cash-box/{id}/pdf', [CashBoxController::class, 'pdf'])
     ->name('cash-box.pdf');
 

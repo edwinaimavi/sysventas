@@ -10,6 +10,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\LoansReportExport;
 use App\Models\Branch;
+use App\Models\CashBox;
 use App\Models\CashMovement;
 use Yajra\DataTables\Facades\DataTables;
 use App\Models\Client;
@@ -987,7 +988,12 @@ class ReportController extends Controller
         $from = $request->date_from;
         $to   = $request->date_to;
 
+        $cashId = CashBox::where('status', 'open')
+            ->when($request->branch_id, fn($q) => $q->where('branch_id', $request->branch_id))
+            ->value('id');
+
         $movements = CashMovement::query()
+            ->where('cash_box_id', $cashId) // 🔥 AQUÍ ESTÁ LA SOLUCIÓN
             ->with(['user'])
             ->when($request->branch_id, fn($q) => $q->where('branch_id', $request->branch_id))
             ->when($from, fn($q) => $q->whereDate('created_at', '>=', $from))
@@ -1034,7 +1040,7 @@ class ReportController extends Controller
             'loan_disbursement'    => 'Desembolso de Préstamo',
             'loan_increment'       => 'Incremento de Préstamo',
             'opening'              => 'Apertura de Caja',
-            'capital_replenishment'=> 'Reposición de Caja'
+            'capital_replenishment' => 'Reposición de Caja'
         ];
 
         return $map[$concept] ?? ucfirst(str_replace('_', ' ', $concept));

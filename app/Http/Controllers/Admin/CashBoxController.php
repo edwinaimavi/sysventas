@@ -121,8 +121,17 @@ class CashBoxController extends Controller
         $cash = CashBox::findOrFail($id);
 
         // 🔥 TEMPORAL (luego vendrá de movimientos reales)
-        $totalIncome = $cash->total_income ?? 0;
-        $totalExpense = $cash->total_expense ?? 0;
+        /*  $totalIncome = $cash->total_income ?? 0;
+        $totalExpense = $cash->total_expense ?? 0; */
+
+        $totalIncome = $cash->movements()
+            ->where('type', 'in')
+            ->where('concept', '!=', 'opening') // 👈 CLAVE
+            ->sum('amount');
+
+        $totalExpense = $cash->movements()
+            ->where('type', 'out')
+            ->sum('amount');
 
         $expectedBalance =
             $cash->opening_amount +
@@ -432,7 +441,73 @@ class CashBoxController extends Controller
         return $pdf->download('detalle_caja.pdf');
     }
 
+    public function close(Request $request)
+    {
+        $branchId = session('branch_id');
 
+        $data = $request->validate([
+            'cash_id'       => 'required|exists:cash_boxes,id',
+            'closing_amount' => 'required|numeric|min:0',
+            'closing_notes' => 'nullable|string|max:500'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $cash = CashBox::where('id', $data['cash_id'])
+                ->where('branch_id', $branchId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($cash->status !== 'open') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La caja ya está cerrada.'
+                ], 422);
+            }
+
+            // 🔥 CALCULAR SALDO REAL DEL SISTEMA
+            $income = $cash->movements()
+                ->where('type', 'in')
+                ->where('concept', '!=', 'opening') // 👈 MISMO ERROR AQUÍ
+                ->sum('amount');
+            $expense = $cash->movements()->where('type', 'out')->sum('amount');
+
+            $expected = $income - $expense;
+
+            $real = $data['closing_amount'];
+            $difference = $real - $expected;
+
+            // 💾 GUARDAR CIERRE
+            $cash->update([
+                'closing_amount' => $real,
+                'closing_notes'  => $data['closing_notes'],
+                'closed_at'      => now(),
+                'closed_by'      => Auth::id(),
+                'status'         => 'closed'
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Caja cerrada correctamente',
+                'data' => [
+                    'expected' => $expected,
+                    'real' => $real,
+                    'difference' => $difference
+                ]
+            ]);
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cerrar caja'
+            ], 500);
+        }
+    }
     /**
      * Display the specified resource.
      */

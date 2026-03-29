@@ -76,7 +76,8 @@
             cashSummary: "{{ route('admin.cash-box.summary', ':id') }}",
             cashReplenish: "{{ route('admin.cash-box.replenish') }}",
             cashOut: "{{ route('admin.cash-box.withdraw') }}",
-            cashMovements: "{{ route('admin.cash-box.movements', ':id') }}"
+            cashMovements: "{{ route('admin.cash-box.movements', ':id') }}",
+            cashClose: "{{ route('admin.cash-box.close') }}"
 
 
         }
