@@ -29,11 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const formData = $form.serialize();
         if (!$('input[name="permissions[]"]:checked').length) {
-            $('<input>').attr({
-                type: 'hidden',
-                name: 'permissions[]',
-                value: ''
-            }).appendTo('#roleForm');
+            $('input[name="permissions[]"]').prop('checked', false);
         }
         $.ajax({
             url: url,
