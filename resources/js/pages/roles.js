@@ -27,9 +27,10 @@ document.addEventListener("DOMContentLoaded", function () {
             type = 'POST';
         }
 
-        const formData = $form.serialize();
+        let formData = $form.serializeArray();
+
         if (!$('input[name="permissions[]"]:checked').length) {
-            $('input[name="permissions[]"]').prop('checked', false);
+            formData.push({ name: 'permissions', value: '' });
         }
         $.ajax({
             url: url,

@@ -105,14 +105,9 @@ class RoleController extends Controller
                 'required',
                 'string',
                 'max:255',
-                'name' => [
-                    'required',
-                    'string',
-                    'max:255',
-                    Rule::unique('roles', 'name')
-                        ->where('guard_name', 'web')
-                        ->ignore($role->id),
-                ],
+                Rule::unique('roles', 'name')
+                    ->where('guard_name', 'web')
+                    ->ignore($role->id),
             ],
             'permissions' => 'nullable|array'
         ]);
