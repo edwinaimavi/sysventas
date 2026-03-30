@@ -29,9 +29,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
         let formData = $form.serializeArray();
 
-        if (!$('input[name="permissions[]"]:checked').length) {
+       /*  if (!$('input[name="permissions[]"]:checked').length) {
             formData.push({ name: 'permissions', value: '' });
-        }
+        } */
         $.ajax({
             url: url,
             type: type,
