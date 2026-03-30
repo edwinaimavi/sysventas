@@ -8,10 +8,10 @@ use Spatie\Permission\models\Role;
 use Yajra\DataTables\Facades\DataTables;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Validation\Rule;
 class RoleController extends Controller
 {
-   public function __construct()
+    public function __construct()
     {
         $this->middleware('can:admin.roles.index')->only('index', 'list');
         $this->middleware('can:admin.roles.store')->only('store');
@@ -33,20 +33,19 @@ class RoleController extends Controller
     }
 
     public function list()
-        {
-            /* $permissions = Permission::all(); */
-            
-            $roles = Role::orderBy('id', 'desc')->get();
+    {
+        /* $permissions = Permission::all(); */
 
-            return DataTables::of($roles)
+        $roles = Role::orderBy('id', 'desc')->get();
+
+        return DataTables::of($roles)
             ->addIndexcolumn()
-            ->addColumn('acciones',function ($role){
-               return view('admin.roles.partials.acciones',compact('role'))->render();
-
+            ->addColumn('acciones', function ($role) {
+                return view('admin.roles.partials.acciones', compact('role'))->render();
             })
             ->rawColumns(['acciones'])
             ->make(true);
-        }
+    }
 
     public function create()
     {
@@ -58,9 +57,9 @@ class RoleController extends Controller
      */
     public function store(Request $request)
     {
-         $data = $request->validate([
-        'name' => 'required|string|max:255|unique:roles,name',
-        'permissions' => 'array'
+        $data = $request->validate([
+            'name' => 'required|string|max:255|unique:roles,name',
+            'permissions' => 'array'
         ]);
 
         $role = Role::create([
@@ -68,11 +67,11 @@ class RoleController extends Controller
             'guard_name' => 'web',
         ]);
 
-    
+
 
         if (!empty($data['permissions'])) {
             $permissions = Permission::whereIn('name', $data['permissions'])->pluck('id');
-        
+
             $role->permissions()->sync($permissions);
         }
 
@@ -101,23 +100,31 @@ class RoleController extends Controller
     public function update(Request $request, Role $role)
     {
         $data = $request->validate([
-                'name' => 'required|string|max:255|unique:roles,name,' . $role->id,
-                'permissions' => 'array'
-            ]);
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('roles')
+                    ->where(function ($query) {
+                        return $query->where('guard_name', 'web');
+                    })
+                    ->ignore($role->id)
+            ],
+            'permissions' => 'array'
+        ]);
+        $role->update([
+            'name' => $data['name'],
+            'guard_name' => 'web',
+        ]);
 
-            $role->update([
-                'name' => $data['name'],
-                'guard_name' => 'web',
-            ]);
+        if (!empty($data['permissions'])) {
+            $permissions = Permission::whereIn('name', $data['permissions'])->pluck('id');
+            $role->permissions()->sync($permissions);
+        } else {
+            $role->permissions()->detach(); // para quitar todos si viene vacío
+        }
 
-            if (!empty($data['permissions'])) {
-                $permissions = Permission::whereIn('name', $data['permissions'])->pluck('id');
-                $role->permissions()->sync($permissions);
-            } else {
-                $role->permissions()->detach(); // para quitar todos si viene vacío
-            }
-
-            return response()->json(['message' => 'Rol actualizado exitosamente.']);
+        return response()->json(['message' => 'Rol actualizado exitosamente.']);
     }
 
     /**
