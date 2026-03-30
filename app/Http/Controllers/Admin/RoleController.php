@@ -9,6 +9,7 @@ use Yajra\DataTables\Facades\DataTables;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+
 class RoleController extends Controller
 {
     public function __construct()
@@ -110,18 +111,20 @@ class RoleController extends Controller
                     })
                     ->ignore($role->id)
             ],
-            'permissions' => 'array'
+            'permissions' => 'nullable|array'
         ]);
         $role->update([
             'name' => $data['name'],
             'guard_name' => 'web',
         ]);
 
-        if (!empty($data['permissions'])) {
-            $permissions = Permission::whereIn('name', $data['permissions'])->pluck('id');
+        $permissionsInput = array_filter($request->input('permissions', []));
+
+        if (!empty($permissionsInput)) {
+            $permissions = Permission::whereIn('name', $permissionsInput)->pluck('id');
             $role->permissions()->sync($permissions);
         } else {
-            $role->permissions()->detach(); // para quitar todos si viene vacío
+            $role->permissions()->detach();
         }
 
         return response()->json(['message' => 'Rol actualizado exitosamente.']);
