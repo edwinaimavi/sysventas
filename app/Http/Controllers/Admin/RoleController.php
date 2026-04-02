@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Yajra\DataTables\Facades\DataTables;
 use Spatie\Permission\Models\Permission;
-use Illuminate\Support\Facades\DB;
+
 use Illuminate\Validation\Rule;
 
 class RoleController extends Controller

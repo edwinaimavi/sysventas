@@ -285,8 +285,57 @@ class AdvancedReportController extends Controller
         $data = $this->baseQuery($request);
 
         $pdf = FacadePdf::loadView('admin.reports.pdf.advanced', compact('data'))
-          ->setPaper('a4', 'landscape');
+            ->setPaper('a4', 'landscape');
 
         return $pdf->download('reporte.pdf');
+    }
+
+
+    public function payments(Request $request)
+    {
+        $query = DB::table('loan_payments as p')
+            ->join('loans as l', 'l.id', '=', 'p.loan_id')
+            ->join('clients as c', 'c.id', '=', 'l.client_id')
+
+            // 🔥 SOLO MÉTODOS VÁLIDOS
+            ->whereIn('p.method', ['cash', 'yape', 'plin', 'bank_transfer'])
+
+            ->select(
+                'p.id',
+                'p.payment_code',
+                'l.loan_code',
+                'c.full_name as client_name',
+                'p.payment_date',
+                'p.amount',
+                'p.method'
+            );
+
+        // 🔹 FILTRO POR FECHA
+        if ($request->date_from && $request->date_to) {
+            $query->whereBetween('p.payment_date', [$request->date_from, $request->date_to]);
+        }
+
+        // 🔹 FILTRO POR SUCURSAL
+        if ($request->branch_id) {
+            $query->where('p.branch_id', $request->branch_id);
+        }
+
+        // 🔥 FILTRO POR MÉTODO (EL SELECT QUE VAMOS A CREAR)
+        if ($request->payment_method) {
+            $query->where('p.method', $request->payment_method);
+        }
+
+        return datatables()->of($query)
+            ->addIndexColumn()
+
+            ->editColumn('amount', function ($row) {
+                return 'S/ ' . number_format($row->amount, 2);
+            })
+
+            ->editColumn('method', function ($row) {
+                return ucfirst($row->method);
+            })
+
+            ->make(true);
     }
 }

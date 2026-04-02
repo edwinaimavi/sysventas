@@ -12,6 +12,7 @@ $(function () {
                 d.branch_id = $('#adv_branch').val();
                 d.kpi_filter = kpiFilter; // 👈 NUEVO
             }
+
         },
         columns: [
             { data: 'DT_RowIndex', orderable: false, searchable: false },
@@ -123,11 +124,19 @@ $(function () {
 function loadBranches() {
     $.get('/admin/reports/advanced/branches', function (res) {
 
-        let select = $('#adv_branch');
-        select.html('<option value="">Todas</option>');
+        // 🔹 TAB 1
+        let select1 = $('#adv_branch');
+        select1.html('<option value="">Todas</option>');
+
+        // 🔹 TAB 2
+        let select2 = $('#pay_branch');
+        select2.html('<option value="">Todas</option>');
 
         res.forEach(b => {
-            select.append(`<option value="${b.id}">${b.name}</option>`);
+
+            // llenar ambos selects
+            select1.append(`<option value="${b.id}">${b.name}</option>`);
+            select2.append(`<option value="${b.id}">${b.name}</option>`);
         });
 
     });

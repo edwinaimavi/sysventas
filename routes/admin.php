@@ -223,5 +223,8 @@ Route::get('reports/advanced/pdf', [AdvancedReportController::class, 'exportPdf'
 
 Route::get('reports/advanced/excel', [AdvancedReportController::class, 'exportExcel'])->name('reports.advanced.excel');
 
+Route::get('reports/advanced/payments', [AdvancedReportController::class, 'payments'])
+    ->name('reports.advanced.payments');
+
 Route::get('reports/advanced', [AdvancedReportController::class, 'index'])
     ->name('reports.advanced');

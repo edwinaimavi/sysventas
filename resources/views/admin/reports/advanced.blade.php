@@ -30,168 +30,265 @@
 
 
 @section('content_body')
+    <ul class="nav nav-tabs mb-3" id="reportTabs" role="tablist">
 
-    {{-- =========================
+        <li class="nav-item">
+            <a class="nav-link active" id="general-tab" data-toggle="tab" href="#general" role="tab">
+                <i class="fas fa-chart-bar"></i> Resumen General
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link" id="payments-tab" data-toggle="tab" href="#payments" role="tab">
+                <i class="fas fa-money-bill-wave"></i> Resumen de Pagos
+            </a>
+        </li>
+
+    </ul>
+
+    <div class="tab-content">
+
+        {{-- =========================
 FILTROS
-========================= --}}
-    <div class="card shadow-sm border-0 mb-3">
-        <div class="card-body">
-            <form id="formAdvancedFilters" class="row">
+--}}
+        <div class="tab-pane fade show active" id="general" role="tabpanel">
 
-                <div class="col-md-3">
-                    <label class="small font-weight-bold text-secondary">Desde</label>
-                    <input type="date" class="form-control form-control-sm" id="adv_date_from">
+            <div class="card shadow-sm border-0 mb-3">
+                <div class="card-body">
+                    <form id="formAdvancedFilters" class="row">
+
+                        <div class="col-md-3">
+                            <label class="small font-weight-bold text-secondary">Desde</label>
+                            <input type="date" class="form-control form-control-sm" id="adv_date_from">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="small font-weight-bold text-secondary">Hasta</label>
+                            <input type="date" class="form-control form-control-sm" id="adv_date_to">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="small font-weight-bold text-secondary">Sucursal</label>
+                            <select class="form-control form-control-sm" id="adv_branch">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="button" class="btn btn-primary btn-sm w-100" id="btnAdvancedFilter">
+                                <i class="fas fa-filter mr-1"></i> Aplicar filtros
+                            </button>
+                        </div>
+
+                    </form>
                 </div>
-
-                <div class="col-md-3">
-                    <label class="small font-weight-bold text-secondary">Hasta</label>
-                    <input type="date" class="form-control form-control-sm" id="adv_date_to">
-                </div>
-
-                <div class="col-md-3">
-                    <label class="small font-weight-bold text-secondary">Sucursal</label>
-                    <select class="form-control form-control-sm" id="adv_branch">
-                        <option value="">Todas</option>
-                    </select>
-                </div>
-
-                <div class="col-md-3 d-flex align-items-end">
-                    <button type="button" class="btn btn-primary btn-sm w-100" id="btnAdvancedFilter">
-                        <i class="fas fa-filter mr-1"></i> Aplicar filtros
-                    </button>
-                </div>
-
-            </form>
-        </div>
-    </div>
+            </div>
 
 
-    {{-- =========================
+            {{-- =========================
 KPIs
 ========================= --}}
-    <div class="row mb-3">
+            <div class="row mb-3">
 
-        <div class="col-md-3">
-            <div class="small-box bg-info shadow-sm">
-                <div class="inner">
-                    <h4 id="adv_total_loans">S/ 0.00</h4>
-                    <p>Total Colocado</p>
+                <div class="col-md-3">
+                    <div class="small-box bg-info shadow-sm">
+                        <div class="inner">
+                            <h4 id="adv_total_loans">S/ 0.00</h4>
+                            <p>Total Colocado</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-coins"></i></div>
+                        <button class="btn-kpi-detail" data-type="loans">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="icon"><i class="fas fa-coins"></i></div>
-                <button class="btn-kpi-detail" data-type="loans">
-                    <i class="fas fa-eye"></i>
-                </button>
-            </div>
-        </div>
 
-        <div class="col-md-3">
-            <div class="small-box bg-success shadow-sm">
-                <div class="inner">
-                    <h4 id="adv_total_paid">S/ 0.00</h4>
-                    <p>Total Recuperado</p>
+                <div class="col-md-3">
+                    <div class="small-box bg-success shadow-sm">
+                        <div class="inner">
+                            <h4 id="adv_total_paid">S/ 0.00</h4>
+                            <p>Total Recuperado</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-check-circle"></i></div>
+
+                        <button class="btn-kpi-detail" data-type="payments">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="icon"><i class="fas fa-check-circle"></i></div>
 
-                <button class="btn-kpi-detail" data-type="payments">
-                    <i class="fas fa-eye"></i>
-                </button>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="small-box bg-warning shadow-sm">
-                <div class="inner">
-                    <h4 id="adv_total_pending">S/ 0.00</h4>
-                    <p>Saldo Pendiente</p>
+                <div class="col-md-3">
+                    <div class="small-box bg-warning shadow-sm">
+                        <div class="inner">
+                            <h4 id="adv_total_pending">S/ 0.00</h4>
+                            <p>Saldo Pendiente</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-clock"></i></div>
+                        <button class="btn-kpi-detail" data-type="pending">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="icon"><i class="fas fa-clock"></i></div>
-                <button class="btn-kpi-detail" data-type="pending">
-                    <i class="fas fa-eye"></i>
-                </button>
-            </div>
-        </div>
 
-        <div class="col-md-3">
-            <div class="small-box bg-danger shadow-sm">
-                <div class="inner">
-                    <h4 id="adv_total_overdue">S/ 0.00</h4>
-                    <p>Capital Vencido</p>
+                <div class="col-md-3">
+                    <div class="small-box bg-danger shadow-sm">
+                        <div class="inner">
+                            <h4 id="adv_total_overdue">S/ 0.00</h4>
+                            <p>Capital Vencido</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <button class="btn-kpi-detail" data-type="pending">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
-                <button class="btn-kpi-detail" data-type="pending">
-                    <i class="fas fa-eye"></i>
-                </button>
+
             </div>
-        </div>
-
-    </div>
 
 
-    {{-- =========================
+            {{-- =========================
 TABLA PRINCIPAL
 ========================= --}}
-    <div class="card shadow-sm border-0">
-        <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card shadow-sm border-0">
+                <div class="card-header d-flex justify-content-between align-items-center">
 
-            <strong>
-                <i class="fas fa-table mr-1"></i>
-                Detalle de Préstamos y Pagos
-            </strong>
+                    <strong>
+                        <i class="fas fa-table mr-1"></i>
+                        Detalle de Préstamos y Pagos
+                    </strong>
 
-            <div class="btn-group">
-                <button class="btn btn-outline-danger btn-sm" id="btnAdvancedPdf">
-                    <i class="fas fa-file-pdf mr-1"></i> PDF
-                </button>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-danger btn-sm" id="btnAdvancedPdf">
+                            <i class="fas fa-file-pdf mr-1"></i> PDF
+                        </button>
 
-                <button class="btn btn-outline-success btn-sm" id="btnAdvancedExcel">
-                    <i class="fas fa-file-excel mr-1"></i> Excel
-                </button>
+                        <button class="btn btn-outline-success btn-sm" id="btnAdvancedExcel">
+                            <i class="fas fa-file-excel mr-1"></i> Excel
+                        </button>
+                    </div>
+
+                </div>
+
+                <div class="card-body">
+
+                    <div class="table-responsive">
+
+                        <table id="tableAdvancedReport"
+                            class="table table-hover table-bordered table-sm text-center w-100">
+
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Fecha</th>
+                                    <th>Fecha V.</th>
+                                    <th>Cliente</th>
+                                    <th>Préstamo</th>
+
+                                    <th>Monto</th>
+                                    <th>Pagado</th>
+                                    <th>Capital</th>
+                                    <th>Interés</th>
+                                    <th>O.Ingresos</th>
+                                    <th>Saldo</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+
+                            <tfoot>
+                                <tr>
+                                    <th colspan="5">TOTAL</th>
+                                    <th id="total_amount"></th>
+                                    <th id="total_paid"></th>
+                                    <th id="total_capital"></th>
+                                    <th id="total_interest"></th>
+                                    <th id="total_expenses"></th>
+                                    <th colspan="2"></th>
+                                </tr>
+                            </tfoot>
+
+                        </table>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="payments" role="tabpanel">
+
+            <div class="card shadow-sm border-0 mt-3">
+
+                <div class="card-header">
+                    <strong>
+                        <i class="fas fa-money-check-alt"></i>
+                        Detalle de Pagos
+                    </strong>
+                </div>
+
+                <div class="card-body">
+                    <div class="row mb-3">
+
+                        <div class="col-md-4">
+                            <label class="small font-weight-bold">Sucursal</label>
+                            <select id="pay_branch" class="form-control form-control-sm">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="small font-weight-bold">Método de Pago</label>
+                            <select id="pay_method" class="form-control form-control-sm">
+                                <option value="">Todos</option>
+                                <option value="cash">Efectivo</option>
+                                <option value="yape">Yape</option>
+                                <option value="plin">Plin</option>
+                                <option value="bank_transfer">Transferencia</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button class="btn btn-primary btn-sm w-100" id="btnFilterPayments">
+                                <i class="fas fa-filter"></i> Filtrar
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <div class="table-responsive">
+
+                        <table id="tablePaymentsOnly" class="table table-bordered table-sm text-center w-100">
+
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Código</th>
+                                    <th>Préstamo</th>
+                                    <th>Cliente</th>
+                                    <th>Fecha</th>
+                                    <th>Monto</th>
+                                    <th>Método</th>
+                                </tr>
+                            </thead>
+                            <tfoot>
+                                <tr class="font-weight-bold bg-light">
+                                    <th colspan="5" class="text-right">TOTAL:</th>
+                                    <th id="total_payments_amount">S/ 0.00</th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
             </div>
 
         </div>
 
-        <div class="card-body">
 
-            <div class="table-responsive">
-
-                <table id="tableAdvancedReport" class="table table-hover table-bordered table-sm text-center w-100">
-
-                    <thead class="thead-light">
-                        <tr>
-                            <th>#</th>
-                            <th>Fecha</th>
-                            <th>Fecha V.</th>
-                            <th>Cliente</th>
-                            <th>Préstamo</th>
-
-                            <th>Monto</th>
-                            <th>Pagado</th>
-                            <th>Capital</th>
-                            <th>Interés</th>
-                            <th>O.Ingresos</th>
-                            <th>Saldo</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-
-                    <tfoot>
-                        <tr>
-                            <th colspan="5">TOTAL</th>
-                            <th id="total_amount"></th>
-                            <th id="total_paid"></th>
-                            <th id="total_capital"></th>
-                            <th id="total_interest"></th>
-                            <th id="total_expenses"></th>
-                            <th colspan="2"></th>
-                        </tr>
-                    </tfoot>
-
-                </table>
-
-            </div>
-
-        </div>
     </div>
 
 @stop
@@ -224,6 +321,11 @@ TABLA PRINCIPAL
 
         .small-box {
             position: relative;
+        }
+
+        foot {
+            background: #f8f9fa;
+            font-weight: bold;
         }
     </style>
 @endpush
@@ -316,6 +418,81 @@ TABLA PRINCIPAL
 
         });
 
+        let tablePaymentsOnly;
+
+        $('a[data-toggle="tab"][href="#payments"]').on('shown.bs.tab', function() {
+
+            if (tablePaymentsOnly) return;
+
+            tablePaymentsOnly = $('#tablePaymentsOnly').DataTable({
+                processing: true,
+                serverSide: true,
+
+                ajax: {
+                    url: "{{ route('admin.reports.advanced.payments') }}",
+                    data: function(d) {
+                        d.date_from = $('#adv_date_from').val();
+                        d.date_to = $('#adv_date_to').val();
+                        d.branch_id = $('#pay_branch').val();
+                        d.payment_method = $('#pay_method').val();
+                    }
+                },
+
+                columns: [{
+                        data: 'DT_RowIndex',
+                        orderable: false
+                    },
+                    {
+                        data: 'payment_code'
+                    },
+                    {
+                        data: 'loan_code'
+                    },
+                    {
+                        data: 'client_name'
+                    },
+                    {
+                        data: 'payment_date'
+                    },
+                    {
+                        data: 'amount'
+                    },
+                    {
+                        data: 'method'
+                    },
+                ],
+                language: {
+                    url: "/vendor/datatables/js/i18n/es-ES.json"
+                },
+                drawCallback: function() {
+
+                    let api = this.api();
+
+                    let total = 0;
+
+                    function parseMoney(val) {
+                        return parseFloat(val.replace('S/ ', '').replace(',', '')) || 0;
+                    }
+
+                    api.rows().every(function() {
+                        let d = this.data();
+                        total += parseMoney(d.amount);
+                    });
+
+                    $('#total_payments_amount').html('S/ ' + total.toFixed(2));
+                }
+            });
+
+
+
+        });
+
+
+        $('#btnFilterPayments').on('click', function() {
+            if (tablePaymentsOnly) {
+                tablePaymentsOnly.ajax.reload();
+            }
+        });
 
         function traducirMetodo(method) {
             switch (method) {
@@ -330,6 +507,8 @@ TABLA PRINCIPAL
             }
         }
     </script>
+
+
 
 
     @vite(['resources/js/pages/adanced-report.js'])
