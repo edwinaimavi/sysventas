@@ -18,6 +18,7 @@ export default defineConfig({
                 'resources/js/pages/report.js',
                 'resources/js/pages/reminder.js',
                 'resources/js/pages/cash-box.js',
+                'resources/js/pages/adanced-report.js',
             ],
             refresh: true,
         }),
