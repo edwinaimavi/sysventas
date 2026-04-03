@@ -78,10 +78,11 @@ END as has_overdue"),
 
         // 🔥 FILTROS POR KPI
         if ($kpi == 'overdue') {
-            $query->havingRaw("
-        l.due_date < NOW()
-        AND (MAX(l.total_payable) - COALESCE(SUM(p.amount),0)) > 0
-    ");
+            $query->where('l.status', 'disbursed') // ✅ SOLO DESEMBOLSADOS
+                ->havingRaw("
+            l.due_date < NOW()
+            AND (MAX(l.total_payable) - COALESCE(SUM(p.amount),0)) > 0
+        ");
         }
 
         if ($kpi == 'payments') {
