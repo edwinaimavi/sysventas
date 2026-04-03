@@ -455,6 +455,10 @@ class LoanController extends Controller
     public function update(Request $request, string $id)
     {
         $loan = Loan::findOrFail($id);
+        $oldAmount = $loan->amount;
+        $oldTerm = $loan->term_months;
+        $oldRate = $loan->interest_rate;
+        $oldDate = $loan->disbursement_date;
         $branchId = session('branch_id');
 
         // ❌ No permitir editar préstamos finalizados
@@ -555,6 +559,49 @@ class LoanController extends Controller
             DB::beginTransaction();
 
             $loan->update($data);
+            // 🔥 VERIFICAR SI CAMBIÓ ALGO IMPORTANTE
+            $rebuildSchedule = (
+                $oldAmount != $amount ||
+                $oldTerm != $termMonths ||
+                $oldRate != $interestRate ||
+                $oldDate != ($data['disbursement_date'] ?? null)
+            );
+
+            if ($rebuildSchedule) {
+
+                // ❌ OPCIONAL: evitar si ya hay pagos
+                $hasPayments = DB::table('loan_payments')
+                    ->where('loan_id', $loan->id)
+                    ->exists();
+
+                if ($hasPayments) {
+                    DB::rollBack();
+
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'No se puede modificar el cronograma porque el préstamo ya tiene pagos registrados.'
+                    ], 409);
+                }
+
+                // 🧹 ELIMINAR CRONOGRAMA ANTIGUO
+                DB::table('loan_schedules')
+                    ->where('loan_id', $loan->id)
+                    ->delete();
+
+                // 🔥 REGENERAR CRONOGRAMA
+                $scheduleRows = $this->buildFrenchSchedule(
+                    (float)$data['amount'],
+                    (int)$data['term_months'],
+                    (float)$data['interest_rate'],
+                    $data['disbursement_date'] ?? now()->toDateString()
+                );
+
+                foreach ($scheduleRows as $row) {
+                    \App\Models\LoanSchedule::create(array_merge($row, [
+                        'loan_id' => $loan->id,
+                    ]));
+                }
+            }
 
             DB::commit();
 
