@@ -257,8 +257,8 @@ class LoanPaymentController extends Controller
      */
     public function store(Request $request)
     {
-       
-        
+
+
         $branchId = session('branch_id');
 
         if (!$branchId) {
@@ -306,7 +306,7 @@ class LoanPaymentController extends Controller
             'remaining_balance' => 'nullable|numeric|min:0',
 
             'notes' => 'nullable|string|max:500',
-            'expense_description'=> 'nullable|string|max:500',
+            'expense_description' => 'nullable|string|max:500',
             //VALIDACION PARA LOS DATOS DE LOS PAGOS ADICIONALES POR COMISION 
             'expense_amount'      => 'nullable|numeric|min:0',
             'expense_type'        => 'nullable|string|max:50',
@@ -406,7 +406,7 @@ class LoanPaymentController extends Controller
             $payment = LoanPayment::create($data);
 
             // 1.1) Guardar gasto adicional (si existe)
-        /*     if (($expenseData['expense_amount'] ?? 0) > 0.009) {
+            /*     if (($expenseData['expense_amount'] ?? 0) > 0.009) {
                 LoanPaymentExpense::create([
                     'loan_payment_id'    => $payment->id,
                     'branch_id'          => $branchId,
@@ -630,11 +630,52 @@ class LoanPaymentController extends Controller
                 $sch->paid_at = null;
             }
 
+            // ===========================
+            // ✅ CALCULAR closing_balance REAL
+            // ===========================
+            $closing = round($quota - $sch->paid_amount, 2);
+
+            if ($closing < 0) {
+                $closing = 0;
+            }
+
+            $sch->closing_balance = $closing;
+
+            // ===========================
+            // ✅ GUARDAR
+            // ===========================
             $sch->save();
+
 
             $remaining = round($remaining - $use, 2);
         }
+        // ===========================
+        // 🔥 NORMALIZAR TODAS LAS CUOTAS
+        // ===========================
+        LoanSchedule::where('loan_id', $loanId)
+            ->get()
+            ->each(function ($sch) {
 
+                $payment = (float) $sch->payment;
+                $paid    = (float) ($sch->paid_amount ?? 0);
+
+                $closing = round($payment - $paid, 2);
+
+                if ($closing < 0) $closing = 0;
+
+                $sch->closing_balance = $closing;
+
+                // 🔥 estado automático correcto
+                if ($closing <= 0.009) {
+                    $sch->status = 'paid';
+                } elseif ($paid > 0) {
+                    $sch->status = 'partial';
+                } else {
+                    $sch->status = 'pending';
+                }
+
+                $sch->save();
+            });
         return [
             'interest' => round($totalInterestPaid, 2),
             'capital'  => round($totalCapitalPaid, 2),

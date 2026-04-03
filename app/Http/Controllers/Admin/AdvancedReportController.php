@@ -232,9 +232,8 @@ END as has_overdue"),
         // 🔴 CAPITAL VENCIDO
         $overdue = DB::table('loan_schedules')
             ->where('due_date', '<', now())
-            ->where('status', 'pending')
-            ->sum('amortization');
-
+            ->where('closing_balance', '>', 0)
+            ->sum('closing_balance');
         return response()->json([
             'total_loans'   => $totalLoans,
             'total_paid'    => $totalPaid,
