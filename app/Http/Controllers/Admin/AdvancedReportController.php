@@ -230,10 +230,11 @@ END as has_overdue"),
         $totalPending = $totalPayable - $totalPaid;
 
         // 🔴 CAPITAL VENCIDO
-        $overdue = DB::table('loan_schedules')
-            ->where('due_date', '<', now())
-            ->where('closing_balance', '>', 0)
-            ->sum('closing_balance');
+        $overdue = DB::table('loan_schedules as ls')
+            ->join('loans as l', 'l.id', '=', 'ls.loan_id')
+            ->where('l.due_date', '<', now()) // 🔥 SOLO PRÉSTAMOS VENCIDOS
+            ->where('ls.closing_balance', '>', 0) // 🔥 CUOTAS NO PAGADAS
+            ->sum('ls.closing_balance');
         return response()->json([
             'total_loans'   => $totalLoans,
             'total_paid'    => $totalPaid,
