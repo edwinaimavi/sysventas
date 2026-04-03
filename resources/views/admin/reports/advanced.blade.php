@@ -137,7 +137,7 @@ KPIs
                             <p>Capital Vencido</p>
                         </div>
                         <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
-                        <button class="btn-kpi-detail" data-type="pending">
+                        <button class="btn-kpi-detail" data-type="overdue">
                             <i class="fas fa-eye"></i>
                         </button>
                     </div>

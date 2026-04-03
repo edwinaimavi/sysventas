@@ -51,14 +51,12 @@ class AdvancedReportController extends Controller
                 DB::raw('(MAX(l.total_payable) - COALESCE(SUM(p.amount),0)) as balance'),
                 DB::raw('COALESCE(SUM(e.expense_amount),0) as total_expenses'),
                 DB::raw("
-    EXISTS (
-        SELECT 1 
-        FROM loan_schedules ls
-        WHERE ls.loan_id = l.id
-        AND ls.due_date < NOW()
-        AND ls.status = 'pending'
-    ) as has_overdue
-"),
+   CASE 
+    WHEN l.due_date < NOW()
+    AND (MAX(l.total_payable) - COALESCE(SUM(p.amount),0)) > 0
+    THEN 1
+    ELSE 0
+END as has_overdue"),
 
             )
 
@@ -79,16 +77,10 @@ class AdvancedReportController extends Controller
         }
 
         // 🔥 FILTROS POR KPI
-        if ($kpi == 'pending') {
+        if ($kpi == 'overdue') {
             $query->havingRaw("
-        (MAX(l.total_payable) - COALESCE(SUM(p.amount),0)) > 0
-        AND EXISTS (
-            SELECT 1 
-            FROM loan_schedules ls
-            WHERE ls.loan_id = l.id
-            AND ls.due_date < NOW()
-            AND ls.status = 'pending'
-        )
+        l.due_date < NOW()
+        AND (MAX(l.total_payable) - COALESCE(SUM(p.amount),0)) > 0
     ");
         }
 
