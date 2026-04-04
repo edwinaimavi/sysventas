@@ -75,7 +75,9 @@ END as has_overdue"),
         if ($from && $to) {
             $query->whereBetween('l.created_at', [$from, $to]);
         }
-
+        if (!$kpi) {
+            $query->whereIn('l.status', ['disbursed']); // ✅ SOLO DESEMBOLSADOS POR DEFECTO
+        }
         // 🔥 FILTROS POR KPI
         if ($kpi == 'overdue') {
             $query->where('l.status', 'disbursed') // ✅ SOLO DESEMBOLSADOS
@@ -90,7 +92,12 @@ END as has_overdue"),
         }
 
         if ($kpi == 'loans') {
-            // no filtra nada
+            $query->where('l.status', 'disbursed'); // ✅ SOLO DESEMBOLSADOS
+        }
+
+        if ($kpi == 'pending') {
+            $query->where('l.status', 'disbursed') // ✅ SOLO DESEMBOLSADOS
+                ->havingRaw('(MAX(l.total_payable) - COALESCE(SUM(p.amount),0)) > 0');
         }
         return datatables()->of($query)
 
@@ -207,6 +214,7 @@ END as has_overdue"),
 
         // 🔹 TOTAL COLOCADO
         $totalLoans = DB::table('loans')
+            ->where('status', 'disbursed')
             ->when($from && $to, function ($q) use ($from, $to) {
                 $q->whereBetween('created_at', [$from, $to]);
             })
@@ -215,13 +223,15 @@ END as has_overdue"),
         // 🔹 TOTAL PAGADO
         $totalPaid = DB::table('loan_payments as p')
             ->join('loans as l', 'l.id', '=', 'p.loan_id')
+            ->where('l.status', 'disbursed')
             ->when($from && $to, function ($q) use ($from, $to) {
                 $q->whereBetween('l.created_at', [$from, $to]);
             })
             ->sum('p.amount');
 
-        // 🔹 TOTAL A COBRAR
+        // 🔹 TOTAL A COBRAR (🔥 AQUÍ ESTABA EL ERROR)
         $totalPayable = DB::table('loans')
+            ->where('status', 'disbursed') // 🔥 FIX
             ->when($from && $to, function ($q) use ($from, $to) {
                 $q->whereBetween('created_at', [$from, $to]);
             })
