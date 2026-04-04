@@ -164,6 +164,9 @@
                                         <span class="invalid-feedback" id="loan_id-error"></span>
                                     </div>
 
+
+
+
                                     <div class="form-group col-md-6">
                                         <label for="amount" class="small font-weight-bold text-secondary">
                                             MONTO PAGADO (S/) <span class="text-danger">*</span>
@@ -189,7 +192,43 @@
 
                                 </div>
 
+                                <div class="form-row">
+                                    <div class="form-group col-md-12">
+                                        <label class="small font-weight-bold text-secondary">
+                                            CRONOGRAMA DE CUOTAS
+                                            <small class="text-muted d-block">Marca lo que deseas pagar (las pagadas
+                                                estarán bloqueadas)</small>
+                                        </label>
 
+                                        <div class="table-responsive"
+                                            style="max-height:240px; overflow:auto; background:#fff; border-radius:8px;">
+                                            <table class="table table-sm table-hover mb-0">
+                                                <thead class="thead-light">
+                                                    <tr class="text-center">
+                                                        <th style="width:50px;">Pagar</th>
+                                                        <th>#</th>
+                                                        <th>Vence</th>
+                                                        <th>Cuota</th>
+                                                        <th>Pagado</th>
+                                                        <th>Falta</th>
+                                                        <th>Estado</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="scheduleRows">
+                                                    <tr>
+                                                        <td colspan="7" class="text-center text-muted py-3">
+                                                            Seleccione un préstamo…</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <small class="text-muted d-block mt-2">
+                                            Tip: si marcas cuotas, el monto se autocompleta con el total “Falta”
+                                            seleccionado.
+                                        </small>
+                                    </div>
+                                </div>
                                 {{-- row: gasto adicional --}}
                                 <div class="form-row">
                                     <div class="form-group col-md-4">
@@ -351,43 +390,7 @@
 
                                 <hr>
 
-                                <div class="form-row">
-                                    <div class="form-group col-md-12">
-                                        <label class="small font-weight-bold text-secondary">
-                                            CRONOGRAMA DE CUOTAS
-                                            <small class="text-muted d-block">Marca lo que deseas pagar (las pagadas
-                                                estarán bloqueadas)</small>
-                                        </label>
 
-                                        <div class="table-responsive"
-                                            style="max-height:240px; overflow:auto; background:#fff; border-radius:8px;">
-                                            <table class="table table-sm table-hover mb-0">
-                                                <thead class="thead-light">
-                                                    <tr class="text-center">
-                                                        <th style="width:50px;">Pagar</th>
-                                                        <th>#</th>
-                                                        <th>Vence</th>
-                                                        <th>Cuota</th>
-                                                        <th>Pagado</th>
-                                                        <th>Falta</th>
-                                                        <th>Estado</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody id="scheduleRows">
-                                                    <tr>
-                                                        <td colspan="7" class="text-center text-muted py-3">
-                                                            Seleccione un préstamo…</td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                        <small class="text-muted d-block mt-2">
-                                            Tip: si marcas cuotas, el monto se autocompleta con el total “Falta”
-                                            seleccionado.
-                                        </small>
-                                    </div>
-                                </div>
 
 
                                 {{-- row 7: notas --}}

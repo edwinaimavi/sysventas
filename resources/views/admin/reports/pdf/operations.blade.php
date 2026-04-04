@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="es">
+
 <head>
     <meta charset="utf-8">
 
@@ -10,177 +11,226 @@
             color: #333;
         }
 
-        /* ===== HEADER ===== */
         .header {
-            text-align: center;
-            border-bottom: 2px solid #444;
+            width: 100%;
+            border-bottom: 2px solid #28a745;
             margin-bottom: 15px;
-            padding-bottom: 8px;
+            padding-bottom: 10px;
         }
 
-        .header h2 {
-            margin: 0;
-            font-size: 16px;
-            letter-spacing: 1px;
+        .header table {
+            width: 100%;
         }
 
-        .header small {
-            color: #666;
-        }
-
-        /* ===== INFO ===== */
-        .info {
-            margin-bottom: 12px;
-        }
-
-        .info span {
-            display: inline-block;
-            margin-right: 15px;
-        }
-
-        /* ===== BOXES ===== */
-        .box {
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-
-        .box-title {
-            background: #f5f5f5;
-            padding: 6px 8px;
+        .title {
+            font-size: 18px;
             font-weight: bold;
-            border-bottom: 1px solid #ccc;
+            color: #28a745;
         }
 
-        .box-body {
-            padding: 8px;
+        .subtitle {
+            font-size: 11px;
+            color: #777;
         }
 
         .row {
-            margin-bottom: 4px;
+            width: 100%;
+            display: flex;
+            margin-bottom: 10px;
         }
 
-        .label {
-            display: inline-block;
-            width: 65%;
+        .col {
+            width: 50%;
+            padding: 5px;
         }
 
-        .value {
-            display: inline-block;
-            width: 34%;
-            text-align: right;
+        .card {
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 8px;
+            color: white;
             font-weight: bold;
+            text-align: center;
+            font-size: 12px;
         }
 
-        /* ===== COLORS ===== */
-        .green { color: #1e7e34; }
-        .red { color: #c82333; }
-        .blue { color: #0056b3; }
+        .success {
+            background: #28a745;
+        }
 
-        /* ===== RESUMEN ===== */
-        .summary {
-            border: 2px solid #444;
+        .danger {
+            background: #dc3545;
+        }
+
+        .info {
+            background: #17a2b8;
+        }
+
+        .warning {
+            background: #f4b400;
+        }
+
+        .card-body {
+            padding: 10px;
+        }
+
+        .line {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed #ddd;
+            padding: 4px 0;
+        }
+
+        .line:last-child {
+            border-bottom: none;
+        }
+
+        .totals {
             margin-top: 15px;
         }
 
-        .summary .box-title {
-            background: #444;
-            color: #fff;
+        .box {
+            width: 32%;
+            display: inline-block;
+            padding: 12px;
+            color: white;
+            border-radius: 8px;
             text-align: center;
-            letter-spacing: 1px;
+            font-size: 13px;
+            font-weight: bold;
         }
 
-        .saldo {
-            font-size: 14px;
-            margin-top: 6px;
-            text-align: center;
-        }
-
-        /* ===== FOOTER ===== */
         .footer {
-            margin-top: 20px;
-            font-size: 9px;
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
             text-align: center;
-            color: #777;
+            font-size: 10px;
+            color: #999;
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        td {
+            vertical-align: top;
         }
     </style>
+
 </head>
 
 <body>
 
-    {{-- HEADER --}}
+    <!-- HEADER -->
     <div class="header">
-        <h2>REPORTE DE OPERACIONES DE CAJA</h2>
-        <small>Sistema de Créditos</small>
+        <table>
+            <tr>
+                <td width="20%">
+                    <img src="{{ public_path('vendor/adminlte/dist/img/logo2.png') }}" height="50">
+                </td>
+                <td width="80%" style="text-align:right;">
+                    <div class="title">REPORTE DE OPERACIONES</div>
+                    <div class="subtitle">
+                        Fecha: {{ date('d/m/Y H:i') }}
+                    </div>
+                </td>
+            </tr>
+        </table>
     </div>
 
-    {{-- FILTROS --}}
-    <div class="info">
-        <span><strong>Desde:</strong> {{ $filters['date_from'] ?? '—' }}</span>
-        <span><strong>Hasta:</strong> {{ $filters['date_to'] ?? '—' }}</span>
-    </div>
+    <!-- INGRESOS / SALIDAS -->
+    <table width="100%" cellspacing="10">
+        <tr>
+            <!-- INGRESOS -->
+            <td width="50%" valign="top">
+                <div class="card">
+                    <div class="card-header success">INGRESOS</div>
+                    <div class="card-body">
 
-    {{-- INGRESOS --}}
-    <div class="box">
-        <div class="box-title green">INGRESOS</div>
-        <div class="box-body">
-            <div class="row">
-                <span class="label">Monto cobrado</span>
-                <span class="value">S/ {{ number_format($montoCobrado, 2) }}</span>
-            </div>
-            <div class="row">
-                <span class="label">Capital recuperado</span>
-                <span class="value">S/ {{ number_format($capitalRecuperado, 2) }}</span>
-            </div>
-            <div class="row">
-                <span class="label">Intereses cobrados</span>
-                <span class="value">S/ {{ number_format($interesesCobrados, 2) }}</span>
-            </div>
-            {{-- <div class="row">
-                <span class="label">Vuelto al cliente</span>
-                <span class="value red">S/ {{ number_format($vueltoCliente, 2) }}</span>
-            </div> --}}
-        </div>
-    </div>
+                        <div class="line">
+                            <span>Monto cobrado</span>
+                            <strong>S/ {{ number_format($montoCobrado, 2) }}</strong>
+                        </div>
 
-    {{-- SALIDAS --}}
-    <div class="box">
-        <div class="box-title red">SALIDAS</div>
-        <div class="box-body">
-            <div class="row">
-                <span class="label">Capital revolvente prestado</span>
-                <span class="value">S/ {{ number_format($capitalRevolvente, 2) }}</span>
-            </div>
-            <div class="row">
-                <span class="label">Capital en cuotas prestado</span>
-                <span class="value">S/ {{ number_format($capitalCuotas, 2) }}</span>
-            </div>
-        </div>
-    </div>
+                        <div class="line">
+                            <span>Capital recuperado</span>
+                            <strong>S/ {{ number_format($capitalRecuperado, 2) }}</strong>
+                        </div>
 
-    {{-- RESUMEN --}}
-    <div class="box summary">
-        <div class="box-title">RESUMEN DE CAJA</div>
-        <div class="box-body">
-            <div class="row">
-                <span class="label">Total ingresos</span>
-                <span class="value green">S/ {{ number_format($totalIngresos, 2) }}</span>
-            </div>
-            <div class="row">
-                <span class="label">Total salidas</span>
-                <span class="value red">S/ {{ number_format($totalSalidas, 2) }}</span>
-            </div>
+                        <div class="line">
+                            <span>Intereses</span>
+                            <strong>S/ {{ number_format($interesesCobrados, 2) }}</strong>
+                        </div>
 
-            <div class="saldo {{ $saldoCaja < 0 ? 'red' : 'green' }}">
-                SALDO EN CAJA: S/ {{ number_format($saldoCaja, 2) }}
-            </div>
-        </div>
-    </div>
+                        <div class="line">
+                            <span>Otros ingresos</span>
+                            <strong>S/ {{ number_format($gastosAdicionales, 2) }}</strong>
+                        </div>
 
-    {{-- FOOTER --}}
+                    </div>
+                </div>
+            </td>
+
+            <!-- SALIDAS -->
+            <td width="50%" valign="top">
+                <div class="card">
+                    <div class="card-header danger">SALIDAS</div>
+                    <div class="card-body">
+
+                        <div class="line">
+                            <span>Capital revolvente</span>
+                            <strong>S/ {{ number_format($capitalRevolvente, 2) }}</strong>
+                        </div>
+
+                        <div class="line">
+                            <span>Capital en cuotas</span>
+                            <strong>S/ {{ number_format($capitalCuotas, 2) }}</strong>
+                        </div>
+
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- TOTALES -->
+    <table width="100%" cellspacing="10" style="margin-top:15px;">
+        <tr>
+
+            <td width="33%">
+                <div class="box info">
+                    Total Ingresos<br>
+                    S/ {{ number_format($totalIngresos, 2) }}
+                </div>
+            </td>
+
+            <td width="33%">
+                <div class="box warning">
+                    Total Salidas<br>
+                    S/ {{ number_format($totalSalidas, 2) }}
+                </div>
+            </td>
+
+            <td width="33%">
+                <div class="box success">
+                    Saldo en Caja<br>
+                    S/ {{ number_format($saldoCaja, 2) }}
+                </div>
+            </td>
+
+        </tr>
+    </table>
+
+    <!-- FOOTER -->
     <div class="footer">
-        Reporte generado automáticamente · {{ now()->format('d/m/Y H:i') }}
+        Sistema de Gestión Financiera · CICO Ingenieros
     </div>
 
 </body>
+
 </html>

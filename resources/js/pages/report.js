@@ -668,3 +668,16 @@ function initCashBook() {
     });
 }
 
+$('#btnCashBookPdf').on('click', function (e) {
+    e.preventDefault();
+
+    const params = $.param({
+        date_from: $('#date_from').val(),
+        date_to: $('#date_to').val(),
+        branch_id: $('#branch_id').val(),
+        client_id: $('#client_id').val()
+    });
+
+    window.open(window.routes.cashBookPdf + '?' + params, '_blank');
+});
+

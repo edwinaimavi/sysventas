@@ -614,13 +614,13 @@ class ReportController extends Controller
     |--------------------------------------------------------------------------
     */
 
-        $totalIngresos = CashMovement::query()
+        $totalIngresos = $montoCobrado + $gastosAdicionales;
+        $totalIngresos2 = CashMovement::query()
             ->where('type', 'in')
             ->when($request->branch_id, fn($q) => $q->where('branch_id', $request->branch_id))
             ->when($from, fn($q) => $q->whereDate('created_at', '>=', $from))
             ->when($to, fn($q) => $q->whereDate('created_at', '<=', $to))
             ->sum('amount');
-
         $totalSalidas = CashMovement::query()
             ->where('type', 'out')
             ->when($request->branch_id, fn($q) => $q->where('branch_id', $request->branch_id))
@@ -628,7 +628,7 @@ class ReportController extends Controller
             ->when($to, fn($q) => $q->whereDate('created_at', '<=', $to))
             ->sum('amount');
 
-        $saldoCaja = $totalIngresos - $totalSalidas;
+        $saldoCaja = $totalIngresos2 - $totalSalidas;
 
         /*
     |--------------------------------------------------------------------------
@@ -648,7 +648,8 @@ class ReportController extends Controller
             'totalIngresos'      => $totalIngresos,
             'totalSalidas'       => $totalSalidas,
             'saldoCaja'          => $saldoCaja,
-        ]);
+        ])
+            ->setPaper('A4', 'landscape'); // 🔥 IMPORTANTE
 
         return $pdf->stream('reporte-operaciones.pdf');
     }
@@ -689,9 +690,60 @@ class ReportController extends Controller
         $capitalRevolvente = $loans->where('term_months', 1)->sum('amount');
         $capitalCuotas     = $loans->where('term_months', '>', 1)->sum('amount');
 
-        $totalIngresos = $montoCobrado + $gastosAdicionales - $vueltoCliente;
-        $totalSalidas  = $capitalRevolvente + $capitalCuotas;
-        $saldoCaja     = $totalIngresos - $totalSalidas;
+        $totalIngresos = CashMovement::query()
+            ->where('type', 'in')
+            ->when($request->branch_id, fn($q) => $q->where('branch_id', $request->branch_id))
+            ->when($from, fn($q) => $q->whereDate('created_at', '>=', $from))
+            ->when($to, fn($q) => $q->whereDate('created_at', '<=', $to))
+            ->sum('amount');
+
+        $totalSalidas = CashMovement::query()
+            ->where('type', 'out')
+            ->when($request->branch_id, fn($q) => $q->where('branch_id', $request->branch_id))
+            ->when($from, fn($q) => $q->whereDate('created_at', '>=', $from))
+            ->when($to, fn($q) => $q->whereDate('created_at', '<=', $to))
+            ->sum('amount');
+
+        $saldoCaja = $totalIngresos - $totalSalidas;
+
+
+        // =============================
+        // APERTURA DE CAJA
+        // =============================
+        $montoApertura = CashMovement::query()
+            ->where('concept', 'opening')
+            ->where('type', 'in')
+            ->when($request->branch_id, fn($q) => $q->where('branch_id', $request->branch_id))
+            ->when($from, fn($q) => $q->whereDate('created_at', '>=', $from))
+            ->when($to, fn($q) => $q->whereDate('created_at', '<=', $to))
+            ->sum('amount');
+
+        // =============================
+        // OTRAS SALIDAS
+        // =============================
+        $otrasSalidas = CashMovement::query()
+            ->where('type', 'out')
+            ->where('concept', 'expense')
+            ->when($request->branch_id, fn($q) => $q->where('branch_id', $request->branch_id))
+            ->when($from, fn($q) => $q->whereDate('created_at', '>=', $from))
+            ->when($to, fn($q) => $q->whereDate('created_at', '<=', $to))
+            ->sum('amount');
+
+        $reposicion = CashMovement::query()
+            ->where('concept', 'capital_replenishment')
+            ->where('type', 'in')
+            ->when($request->branch_id, fn($q) => $q->where('branch_id', $request->branch_id))
+            ->when($from, fn($q) => $q->whereDate('created_at', '>=', $from))
+            ->when($to, fn($q) => $q->whereDate('created_at', '<=', $to))
+            ->sum('amount');
+
+        $otrosIngresos = CashMovement::query()
+            ->where('concept', 'loan_payment_expense')
+            ->where('type', 'in')
+            ->when($request->branch_id, fn($q) => $q->where('branch_id', $request->branch_id))
+            ->when($from, fn($q) => $q->whereDate('created_at', '>=', $from))
+            ->when($to, fn($q) => $q->whereDate('created_at', '<=', $to))
+            ->sum('amount');
 
         $pdf = Pdf::loadView('admin.reports.pdf.cash', [
             'filters'            => $request->all(),
@@ -703,12 +755,56 @@ class ReportController extends Controller
             'totalIngresos'      => $totalIngresos,
             'totalSalidas'       => $totalSalidas,
             'saldoCaja'          => $saldoCaja,
-        ])->setPaper('A4');
+            'montoApertura'     => $montoApertura,
+            'otrasSalidas'      => $otrasSalidas,
+            'reposicion' => $reposicion,
+            'otrosIngresos' => $otrosIngresos,
+        ])->setPaper('A4', 'landscape');
 
         return $pdf->stream('cuadre_caja.pdf');
     }
 
 
+
+    public function cashBookPdf(Request $request)
+    {
+        $query = CashMovement::query()
+            ->when($request->branch_id, fn($q) => $q->where('branch_id', $request->branch_id))
+            ->when($request->date_from, fn($q) => $q->whereDate('created_at', '>=', $request->date_from))
+            ->when($request->date_to, fn($q) => $q->whereDate('created_at', '<=', $request->date_to))
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        $saldo = 0;
+
+        $data = $query->map(function ($m) use (&$saldo) {
+
+            $ingreso = $m->type == 'in' ? $m->amount : 0;
+            $salida  = $m->type == 'out' ? $m->amount : 0;
+
+            $saldo = $saldo + $ingreso - $salida;
+
+            // 🔥 ESTA ES LA CLAVE (igual que tu datatable)
+            $ctx = $this->getMovementContext($m);
+
+            return [
+                'fecha' => $m->created_at,
+                'concepto' => $this->translateConcept($m->concept),
+                'cliente' => $ctx['client'] ?? '-',
+                'prestamo' => $ctx['loan_code'] ?? '-',
+                'ingreso' => $ingreso,
+                'salida' => $salida,
+                'saldo' => $saldo
+            ];
+        });
+
+        $pdf = Pdf::loadView('admin.reports.pdf.cashbook', [
+            'data' => $data,
+            'filters' => $request->all()
+        ])->setPaper('A4', 'landscape');
+
+        return $pdf->stream('libro_caja.pdf');
+    }
 
     public function details(Request $request)
     {

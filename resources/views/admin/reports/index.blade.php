@@ -455,7 +455,19 @@
 
 
                 <div class="tab-pane fade" id="panel-book" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
 
+                        <div class="text-muted small">
+                            Movimientos detallados de caja
+                        </div>
+
+                        <div class="btn-group">
+                            <a href="#" class="btn btn-outline-danger btn-sm" id="btnCashBookPdf">
+                                <i class="fas fa-file-pdf mr-1"></i> PDF
+                            </a>
+                        </div>
+
+                    </div>
 
                     <div class="table-responsive">
 
@@ -516,6 +528,8 @@
 
         /* NUEVO */
         window.routes.reportsCashbook = "{{ route('admin.reports.cashbook') }}";
+
+        window.routes.cashBookPdf = "{{ route('admin.reports.cashbook.pdf') }}";
 
         // CUADRE / RECUPERACIÓN
     </script>
