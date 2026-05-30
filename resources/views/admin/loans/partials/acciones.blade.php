@@ -13,7 +13,7 @@
     @can('admin.loans.index')
         {{-- SIEMPRE permitir VER --}}
         <button class="btn btn-outline-info btn-sm d-flex align-items-center justify-content-center viewLoan mr-2"
-            data-bs-toggle="tooltip" data-bs-title="Ver Préstamo" data-id="{{ $loan->id }}"
+            data-toggle="tooltip" title="Ver Préstamo" data-id="{{ $loan->id }}"
             data-loan_code="{{ $loan->loan_code }}" data-amount="{{ $loan->amount }}"
             data-term_months="{{ $loan->term_months }}" data-interest_rate="{{ $loan->interest_rate }}"
             data-monthly_payment="{{ $loan->monthly_payment }}" data-total_payable="{{ $loan->total_payable }}"
@@ -31,7 +31,7 @@
         @can('admin.loans.update')
             {{-- EDITAR PRÉSTAMO --}}
             <button class="btn btn-outline-primary btn-sm d-flex align-items-center justify-content-center editLoan mr-2"
-                data-bs-toggle="tooltip" data-bs-title="Editar Préstamo" data-id="{{ $loan->id }}"
+                data-toggle="tooltip" title="Editar Préstamo" data-id="{{ $loan->id }}"
                 data-loan_code="{{ $loan->loan_code }}" data-amount="{{ $loan->amount }}"
                 data-term_months="{{ $loan->term_months }}" data-interest_rate="{{ $loan->interest_rate }}"
                 data-monthly_payment="{{ $loan->monthly_payment }}" data-total_payable="{{ $loan->total_payable }}"
@@ -54,8 +54,8 @@
             <button
                 class="btn btn-sm d-flex align-items-center justify-content-center incrementLoan mr-2 
     {{ $hasDisbursement ? 'btn-outline-warning' : 'btn-secondary' }}"
-                data-bs-toggle="tooltip"
-                data-bs-title="{{ $hasDisbursement ? 'Ampliar / Incrementar préstamo' : 'Debe tener al menos un desembolso' }}"
+                datatoggle="tooltip"
+                title="{{ $hasDisbursement ? 'Ampliar / Incrementar préstamo' : 'Debe tener al menos un desembolso' }}"
                 data-id="{{ $loan->id }}" data-loan_code="{{ $loan->loan_code }}"
                 data-client_name="{{ optional($loan->client)->full_name }}" data-amount="{{ $loan->amount }}"
                 data-status="{{ $loan->status }}" {{ !$hasDisbursement ? 'disabled' : '' }}>
@@ -81,7 +81,7 @@
         @can('admin.loans.disbursements')
             <button
                 class="btn btn-sm d-flex align-items-center justify-content-center disbursementModal {{ $btnClass }} mr-2"
-                data-bs-toggle="tooltip" data-bs-title="{{ $tooltip }}" data-loan_id="{{ $loan->id }}"
+                data-toggle="tooltip" title="{{ $tooltip }}" data-loan_id="{{ $loan->id }}"
                 data-loan_code="{{ $loan->loan_code }}" data-client_name="{{ optional($loan->client)->full_name }}"
                 data-amount="{{ $loan->amount }}" data-total_disbursed="{{ $totalDisbursed }}"
                 data-remaining="{{ $remaining }}" data-status="{{ $statusClean }}"
@@ -94,7 +94,7 @@
             @can('admin.loans.refinance')
                 <button
                     class="btn btn-outline-dark btn-sm d-flex align-items-center justify-content-center refinanceLoan mr-2"
-                    data-bs-toggle="tooltip" data-bs-title="Refinanciar" data-id="{{ $loan->id }}"
+                    data-toggle="tooltip" title="Refinanciar" data-id="{{ $loan->id }}"
                     data-loan_code="{{ $loan->loan_code }}" data-client_name="{{ optional($loan->client)->full_name }}"
                     data-due_date="{{ $loan->due_date ? \Carbon\Carbon::parse($loan->due_date)->format('Y-m-d') : '' }}"
                     data-remaining="{{ $loan->remainingBalance() }}" data-interest_rate="{{ $loan->interest_rate }}"
@@ -108,7 +108,7 @@
         {{-- BORRAR PRÉSTAMO --}}
         @can('admin.loans.destroy')
             <button class="btn btn-outline-danger btn-sm d-flex align-items-center justify-content-center deleteLoan"
-                data-id="{{ $loan->id }}" data-bs-toggle="tooltip" data-bs-title="Eliminar Préstamo">
+                data-id="{{ $loan->id }}" data-toggle="tooltip" title="Eliminar Préstamo">
                 <i class="fa fa-trash"></i>
             </button>
         @endcan

@@ -34,7 +34,7 @@
     {{-- VER PAGO --}}
     @can('admin.payments.index')
         <button class="btn btn-outline-info btn-sm d-flex align-items-center justify-content-center viewPayment"
-            data-bs-toggle="tooltip" data-bs-title="Ver pago" data-id="{{ $payment->id }}"
+            data-toggle="tooltip" title="Ver pago" data-id="{{ $payment->id }}"
             data-payment_code="{{ $payment->payment_code }}" data-payment_date="{{ $payment->payment_date }}"
             data-amount="{{ $payment->amount }}" data-capital="{{ $payment->capital }}"
             data-interest="{{ $payment->interest }}" data-late_fee="{{ $payment->late_fee }}"
@@ -56,7 +56,7 @@
     @if ($payment->status !== 'reversed')
         <button type="button"
             class="btn btn-outline-secondary btn-sm d-flex align-items-center justify-content-center printPayment"
-            data-id="{{ $payment->id }}" data-bs-toggle="tooltip" data-bs-title="Imprimir comprobante">
+            data-id="{{ $payment->id }}" data-toggle="tooltip" title="Imprimir comprobante">
             <i class="fas fa-print"></i>
         </button>
     @endif
@@ -66,7 +66,7 @@
     @if ($payment->status !== 'reversed')
         @can('admin.payments.destroy')
             <button class="btn btn-outline-danger btn-sm d-flex align-items-center justify-content-center deletePayment"
-                data-id="{{ $payment->id }}" data-bs-toggle="tooltip" data-bs-title="Anular pago">
+                data-id="{{ $payment->id }}" data-toggle="tooltip" title="Anular pago">
                 <i class="fas fa-ban"></i>
             </button>
         @endcan

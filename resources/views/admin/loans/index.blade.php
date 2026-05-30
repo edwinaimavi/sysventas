@@ -11,6 +11,10 @@
                         <button class="btn btn-app bg-dark" type="button" data-toggle="modal" data-target="#loanModal">
                             <i class="fas fa-plus-circle"></i> Nuevo
                         </button>
+                        <button class="btn btn-app bg-primary" type="button" data-toggle="modal"
+                            data-target="#loanSimulatorModal">
+                            <i class="fas fa-calculator"></i> Simulador
+                        </button>
                     @endcan
                 </h1>
             </div>
@@ -66,6 +70,7 @@
     @include('admin.loans.partials.disbursement_modal')
     @include('admin.loans.partials.increment_modal')
     @include('admin.loans.partials.refinance_modal')
+    @include('admin.loans.partials.loan_simulator')
 
 
 
@@ -237,6 +242,7 @@
         window.routes = {
             loanList: "{{ route('admin.loans.list') }}", // GET lista para DataTables
             storeLoan: "{{ route('admin.loans.store') }}", // POST crear préstamo
+            printLoan: "{{ route('admin.loans.print', ':id') }}",
             deleteLoan: "{{ url('admin/loans') }}", // DELETE /admin/loans/{id}
             generateCode: "{{ route('admin.loans.generate-code') }}",
             storeDisbursement: "{{ route('admin.loan-disbursements.store') }}",
@@ -249,6 +255,7 @@
             refinanceHistory: "{{ route('admin.loans.refinance.history', ['loan' => ':id']) }}",
             // resources/views/admin/loans/index.blade.php (tu window.routes)
             loanSchedulesByLoan: "{{ url('/admin/loans') }}/:id/schedules",
+            loanSimulator: "{{ route('admin.loans.simulate') }}",
 
 
 

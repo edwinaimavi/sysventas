@@ -411,9 +411,10 @@ class LoanController extends Controller
 
             // Guardar cronograma
             foreach ($scheduleRows as $row) {
-                LoanSchedule::create(array_merge($row, [
-                    'loan_id' => $loan->id,
-                ]));
+
+                $row['loan_id'] = $loan->id;
+
+                LoanSchedule::create($row);
             }
 
             DB::commit();
@@ -669,62 +670,142 @@ class LoanController extends Controller
         }
     }
 
-
-    private function buildFrenchSchedule(float $amount, int $termMonths, float $interestRatePercent, string $disbursementDate): array
+    public function print($id)
     {
-        $r = $interestRatePercent / 100; // mensual decimal
+        $loan = Loan::with([
+            'client',
+            'guarantor',
+            'branch',
+            'user',
+            'schedules'
+        ])->findOrFail($id);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView(
+            'admin.loans.print',
+            compact('loan')
+        );
+
+        return $pdf->stream('prestamo_' . $loan->loan_code . '.pdf');
+    }
+
+    public function simulate(Request $request)
+    {
+        $data = $request->validate([
+            'amount'            => 'required|numeric|min:0.01',
+            'term_months'       => 'required|integer|min:1',
+            'interest_rate'     => 'required|numeric|min:0|max:100',
+            'disbursement_date' => 'nullable|date',
+        ]);
+
+        $amount       = (float) $data['amount'];
+        $termMonths   = (int) $data['term_months'];
+        $interestRate = (float) $data['interest_rate'];
+        $date         = $data['disbursement_date'] ?? now()->toDateString();
+
+        $calc = $this->calcFrenchAmortization($amount, $termMonths, $interestRate);
+
+        $schedule = $this->buildFrenchSchedule($amount, $termMonths, $interestRate, $date);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'summary' => [
+                    'amount'          => round($amount, 2),
+                    'term_months'     => $termMonths,
+                    'interest_rate'   => round($interestRate, 2),
+                    'monthly_payment' => $calc['monthly_payment'],
+                    'total_payable'   => $calc['total_payable'],
+                    'total_interest'  => round($calc['total_payable'] - $amount, 2),
+                ],
+                'schedule' => $schedule,
+            ]
+        ]);
+    }
+
+    private function buildFrenchSchedule(
+        float $amount,
+        int $termMonths,
+        float $interestRatePercent,
+        string $disbursementDate
+    ): array {
+
+        $r = $interestRatePercent / 100;
         $n = $termMonths;
 
-        if ($amount <= 0 || $n <= 0) return [];
-
-        // Cuota fija (PMT)
-        if ($r <= 0) {
-            $pmt = $amount / $n;
-        } else {
-            $pow = pow(1 + $r, $n);
-            $pmt = $amount * (($r * $pow) / ($pow - 1));
+        if ($amount <= 0 || $n <= 0) {
+            return [];
         }
 
-        $pmt = round($pmt, 2);
+        // Cuota fija sistema francés
+        if ($r <= 0) {
+            $pmt = round($amount / $n, 2);
+        } else {
+
+            $pow = pow(1 + $r, $n);
+
+            $pmt = round(
+                $amount * (($r * $pow) / ($pow - 1)),
+                2
+            );
+        }
 
         $balance = round($amount, 2);
+
         $start = \Carbon\Carbon::parse($disbursementDate);
 
         $rows = [];
 
         for ($i = 1; $i <= $n; $i++) {
-            $due = $start->copy()->addMonths($i)->toDateString();
 
-            $opening = $balance;
+            $openingBalance = $balance;
 
-            // interés del periodo
-            $interest = ($r <= 0) ? 0 : round($opening * $r, 2);
+            $interest = round($balance * $r, 2);
 
-            // amortización = cuota - interés
-            $amort = round($pmt - $interest, 2);
+            $amortization = round($pmt - $interest, 2);
 
-            // ajuste por redondeo en la última cuota para cerrar en 0.00
+            // Última cuota ajuste
             if ($i === $n) {
-                $amort = $opening;
-                $pmtLast = round($amort + $interest, 2);
-                $closing = 0;
+
+                $amortization = $balance;
+
+                $pmtRow = round($amortization + $interest, 2);
+
+                $closingBalance = 0.00;
             } else {
-                $pmtLast = $pmt;
-                $closing = round($opening - $amort, 2);
-                if ($closing < 0) $closing = 0;
+
+                $pmtRow = $pmt;
+
+                $closingBalance = round(
+                    $balance - $amortization,
+                    2
+                );
             }
 
             $rows[] = [
-                'installment_no'   => $i,
-                'due_date'         => $due,
-                'opening_balance'  => $opening,
-                'interest'         => $interest,
-                'amortization'     => $amort,
-                'payment'          => $pmtLast,
-                'closing_balance'  => $closing,
+
+                // ✅ columnas reales de tu tabla
+                'installment_no' => $i,
+
+                'due_date' => (clone $start)
+                    ->addMonths($i)
+                    ->toDateString(),
+
+                'opening_balance' => $openingBalance,
+
+                'interest' => $interest,
+
+                'amortization' => $amortization,
+
+                'payment' => $pmtRow,
+
+                'paid_amount' => 0,
+
+                'status' => 'pending',
+
+                'closing_balance' => $closingBalance,
             ];
 
-            $balance = $closing;
+            $balance = $closingBalance;
         }
 
         return $rows;

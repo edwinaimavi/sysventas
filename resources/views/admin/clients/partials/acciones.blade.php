@@ -10,7 +10,7 @@
 <div class="btn-group" role="group" aria-label="Acciones">
     @can('admin.clientes.index')
         <button class="btn btn-outline-info btn-sm d-flex align-items-center justify-content-center viewClient"
-            data-bs-toggle="tooltip" data-bs-title="Ver Cliente" data-id="{{ $client->id }}"
+            data-toggle="tooltip" title="Ver Cliente" data-id="{{ $client->id }}"
             data-full_name="{{ $client->full_name }}" data-document_type="{{ $client->document_type }}"
             data-document_number="{{ $client->document_number }}" data-status="{{ $client->status }}"
             data-phone="{{ $client->phone }}" data-email="{{ $client->email }}" data-birth_date="{{ $client->birth_date }}"
@@ -26,7 +26,7 @@
 
     @can('admin.clientes.update')
         <button class="btn btn-outline-primary btn-sm d-flex align-items-center justify-content-center editClient"
-            data-bs-toggle="tooltip" data-bs-title="Editar Cliente" data-id="{{ $client->id }}"
+            data-toggle="tooltip" title="Editar Cliente" data-id="{{ $client->id }}"
             data-document_type ="{{ $client->document_type }}" data-document_number ="{{ $client->document_number }}"
             data-first_name ="{{ $client->first_name }}" data-last_name ="{{ $client->last_name }}"
             data-birth_date ="{{ $client->birth_date }}" data-gender ="{{ $client->gender }}"
@@ -47,7 +47,7 @@
 
     @can('admin.clientes.destroy')
         <button class="btn btn-outline-danger btn-sm d-flex align-items-center justify-content-center deleteClient"
-            data-id="{{ $client->id }}">
+            data-id="{{ $client->id }}" data-toggle="tooltip" title="Eliminar Cliente">
             <i class="fa fa-trash"></i>
         </button>
     @endcan

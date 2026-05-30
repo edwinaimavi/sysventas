@@ -105,6 +105,9 @@ document.addEventListener("DOMContentLoaded", function () {
         const disbursement_date = $(this).data('disbursement_date');
 
         const id = $(this).data('id');
+        const printUrl = window.routes.printLoan.replace(':id', id);
+
+        $('#btnPrintLoan').attr('href', printUrl);
         const created_at = $(this).data('created_at');
         const notes = $(this).data('notes');
 
@@ -1612,8 +1615,359 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     }
 
+    // ========================================
+    // SIMULADOR DE PRÉSTAMOS
+    // ========================================
+
+    $('#btnGenerateSimulation').on('click', function () {
+
+        const amount = parseFloat($('#sim_amount').val()) || 0;
+        const interest = parseFloat($('#sim_interest').val()) || 0;
+        const installments = parseInt($('#sim_installments').val()) || 1;
+        const startDate = $('#sim_date').val();
+
+        if (amount <= 0) {
+            alert('Ingrese monto');
+            return;
+        }
+
+        let totalInterest = amount * (interest / 100);
+        let totalPay = amount + totalInterest;
+
+        let installmentAmount = totalPay / installments;
+
+        $('#sum_total').text('S/ ' + totalPay.toFixed(2));
+        $('#sum_installment').text('S/ ' + installmentAmount.toFixed(2));
+        $('#sum_interest').text('S/ ' + totalInterest.toFixed(2));
+
+        $('#simulationSummary').show();
+
+        let tbody = '';
+
+        let balance = totalPay;
+
+        for (let i = 1; i <= installments; i++) {
+
+            let capital = amount / installments;
+            let interestValue = totalInterest / installments;
+
+            balance -= installmentAmount;
+
+            let date = new Date(startDate);
+
+            date.setMonth(date.getMonth() + i);
+
+            let formattedDate =
+                date.toLocaleDateString('es-PE');
+
+            tbody += `
+            <tr>
+                <td>${i}</td>
+                <td>${formattedDate}</td>
+                <td>S/ ${capital.toFixed(2)}</td>
+                <td>S/ ${interestValue.toFixed(2)}</td>
+                <td>
+                    <strong>
+                        S/ ${installmentAmount.toFixed(2)}
+                    </strong>
+                </td>
+                <td>S/ ${Math.max(balance, 0).toFixed(2)}</td>
+            </tr>
+        `;
+        }
+
+        $('#simulationTableBody').html(tbody);
+
+    });
 
 
+    // ========================================
+    // IMPRIMIR
+    // ========================================
+
+    function printSimulation() {
+
+        let content =
+            document.getElementById('printArea').innerHTML;
+
+        let win = window.open('', '', 'width=1200,height=800');
+
+        win.document.write(`
+        <html>
+        <head>
+
+            <title>Simulador de préstamo</title>
+
+            <style>
+
+                body{
+                    font-family:Arial;
+                    padding:20px;
+                }
+
+                table{
+                    width:100%;
+                    border-collapse:collapse;
+                }
+
+                th,td{
+                    border:1px solid #ccc;
+                    padding:8px;
+                    text-align:center;
+                }
+
+                th{
+                    background:#343a40;
+                    color:white;
+                }
+
+            </style>
+
+        </head>
+
+        <body>
+
+            <h2 style="text-align:center;">
+                CRONOGRAMA SIMULADO
+            </h2>
+
+            ${content}
+
+        </body>
+        </html>
+    `);
+
+        win.document.close();
+
+        win.focus();
+
+        win.print();
+    }
+
+    // =====================================================
+    // SIMULADOR DE PRÉSTAMOS - SISTEMA FRANCÉS
+    // =====================================================
+
+    window.assets = window.assets || {};
+    window.assets.loanLogo = window.assets.loanLogo || "/vendor/adminlte/dist/img/logo2.png";
+
+    let simulationData = [];
+
+    $('#loanSimulatorModal').on('show.bs.modal', function () {
+        if (!$('#sim_date').val()) {
+            const today = new Date().toISOString().slice(0, 10);
+            $('#sim_date').val(today);
+        }
+    });
+
+    $('#btnGenerateSimulation').on('click', function () {
+        const amount = parseFloat($('#sim_amount').val()) || 0;
+        const interest_rate = parseFloat($('#sim_interest').val()) || 0;
+        const term_months = parseInt($('#sim_term').val(), 10) || 0;
+        const disbursement_date = $('#sim_date').val();
+
+        if (amount <= 0 || term_months <= 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Datos incompletos',
+                text: 'Ingresa un monto y un plazo válidos.'
+            });
+            return;
+        }
+
+        $('#btnGenerateSimulation').prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Calculando...');
+        $('#btnPrintSimulation').prop('disabled', true);
+        $('#simulationSummary').addClass('d-none');
+        $('#simulationTableBody').html('');
+
+        $.get(window.routes.loanSimulator, {
+            amount,
+            interest_rate,
+            term_months,
+            disbursement_date
+        }).done(function (resp) {
+            if (!resp || resp.status !== 'success') {
+                Swal.fire('Error', 'No se pudo generar el cronograma.', 'error');
+                return;
+            }
+
+            const summary = resp.data.summary || {};
+            simulationData = resp.data.schedule || [];
+
+            $('#sim_total_payable').text(formatMoney(summary.total_payable || 0));
+            $('#sim_monthly_payment').text(formatMoney(summary.monthly_payment || 0));
+            $('#sim_total_interest').text(formatMoney(summary.total_interest || 0));
+
+            $('#simulationSummary').removeClass('d-none');
+
+            let rows = '';
+            simulationData.forEach(function (row) {
+                rows += `
+            <tr>
+                <td>${row.installment_no ?? row.installment_number ?? ''}</td>
+                <td>${formatDate(row.due_date)}</td>
+                <td>${formatMoney(row.amortization ?? row.capital ?? 0)}</td>
+                <td>${formatMoney(row.interest ?? 0)}</td>
+                <td><strong>${formatMoney(row.payment ?? row.installment ?? 0)}</strong></td>
+                <td>${formatMoney(row.closing_balance ?? row.balance ?? 0)}</td>
+            </tr>
+        `;
+            });
+
+            $('#simulationTableBody').html(rows);
+            $('#btnPrintSimulation').prop('disabled', simulationData.length === 0);
+
+        }).fail(function (xhr) {
+            console.error(xhr.responseText);
+            Swal.fire('Error', 'No se pudo generar el cronograma.', 'error');
+        }).always(function () {
+            $('#btnGenerateSimulation')
+                .prop('disabled', false)
+                .html('<i class="fas fa-sync-alt mr-1"></i> Generar cronograma');
+        });
+    });
+
+    $('#btnPrintSimulation').on('click', function () {
+        if (!simulationData.length) return;
+
+        const amount = parseFloat($('#sim_amount').val()) || 0;
+        const interest_rate = parseFloat($('#sim_interest').val()) || 0;
+        const term_months = parseInt($('#sim_term').val(), 10) || 0;
+        const disbursement_date = $('#sim_date').val();
+
+        let rows = '';
+        simulationData.forEach(function (row) {
+            rows += `
+        <tr>
+            <td>${row.installment_no ?? ''}</td>
+            <td>${formatDate(row.due_date)}</td>
+            <td>${formatMoney(row.amortization ?? 0)}</td>
+            <td>${formatMoney(row.interest ?? 0)}</td>
+            <td>${formatMoney(row.payment ?? 0)}</td>
+            <td>${formatMoney(row.closing_balance ?? 0)}</td>
+        </tr>
+    `;
+        });
+
+        const totalPayable = parseFloat($('#sim_total_payable').text().replace(/[^\d.,-]/g, '').replace(/,/g, '')) || 0;
+        const monthlyPayment = parseFloat($('#sim_monthly_payment').text().replace(/[^\d.,-]/g, '').replace(/,/g, '')) || 0;
+        const totalInterest = parseFloat($('#sim_total_interest').text().replace(/[^\d.,-]/g, '').replace(/,/g, '')) || 0;
+
+        const printWindow = window.open('', '_blank', 'width=1200,height=800');
+        printWindow.document.write(`
+        <html>
+        <head>
+            <title>Cronograma Simulado</title>
+            <style>
+                body { font-family: Arial, sans-serif; color: #333; padding: 20px; }
+                .header { display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #28a745; padding-bottom:10px; margin-bottom:15px; }
+                .title { font-size:20px; font-weight:700; color:#28a745; }
+                .sub { font-size:12px; color:#666; }
+                .summary { display:flex; gap:10px; margin:15px 0 20px; }
+                .box { flex:1; border:1px solid #ddd; border-radius:8px; padding:12px; }
+                .box h4 { margin:0 0 5px; font-size:13px; color:#666; }
+                .box strong { font-size:16px; }
+                table { width:100%; border-collapse:collapse; }
+                th, td { border:1px solid #ccc; padding:7px; font-size:12px; text-align:center; }
+                th { background:#343a40; color:#fff; }
+                .footer { margin-top:18px; font-size:11px; color:#777; text-align:center; }
+                img { height:50px; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div><img src="${window.assets.loanLogo}" alt="Logo"></div>
+                <div style="text-align:right">
+                    <div class="title">CRONOGRAMA SIMULADO</div>
+                    <div class="sub">Monto: ${formatMoney(amount)} · Interés: ${interest_rate}% · Cuotas: ${term_months} · Fecha: ${formatDate(disbursement_date)}</div>
+                </div>
+            </div>
+
+            <div class="summary">
+                <div class="box">
+                    <h4>Total a pagar</h4>
+                    <strong>${formatMoney(totalPayable)}</strong>
+                </div>
+                <div class="box">
+                    <h4>Cuota mensual</h4>
+                    <strong>${formatMoney(monthlyPayment)}</strong>
+                </div>
+                <div class="box">
+                    <h4>Interés total</h4>
+                    <strong>${formatMoney(totalInterest)}</strong>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Fecha</th>
+                        <th>Capital</th>
+                        <th>Interés</th>
+                        <th>Cuota</th>
+                        <th>Saldo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows}
+                </tbody>
+            </table>
+
+            <div class="footer">Sistema de Gestión Financiera · Simulador de Préstamos</div>
+        </body>
+        </html>
+    `);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+    });
+
+    function formatMoney(value) {
+        const num = Number(value || 0);
+        return 'S/ ' + num.toLocaleString('es-PE', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '—';
+        const d = new Date(dateStr + 'T00:00:00');
+        return d.toLocaleDateString('es-PE');
+    }
+    // ========================================
+    // LIMPIAR SIMULADOR AL CERRAR MODAL
+    // ========================================
+
+    $('#loanSimulatorModal').on('hidden.bs.modal', function () {
+
+        // limpiar inputs
+        $('#sim_amount').val('400');
+        $('#sim_interest').val('20');
+        $('#sim_term').val('6');
+
+        // limpiar fecha
+        $('#sim_date').val('');
+
+        // ocultar resumen
+        $('#simulationSummary').addClass('d-none');
+
+        // limpiar cards
+        $('#sim_total_payable').text('S/ 0.00');
+        $('#sim_monthly_payment').text('S/ 0.00');
+        $('#sim_total_interest').text('S/ 0.00');
+
+        // limpiar tabla
+        $('#simulationTableBody').html('');
+
+        // desactivar botón imprimir
+        $('#btnPrintSimulation').prop('disabled', true);
+
+        // limpiar array global
+        simulationData = [];
+
+    });
 
 
 });

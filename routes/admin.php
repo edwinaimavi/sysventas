@@ -56,6 +56,10 @@ Route::get('guarantors/consultar/{dniruc}', [GuarantorController::class, 'consul
 
 //RUTAS PARA EL PRESTAMO
 Route::get('loans/list', [LoanController::class, 'list'])->name('loans.list');
+Route::get('/admin/loans/{id}/print', [LoanController::class, 'print'])
+    ->name('loans.print');
+Route::get('/admin/loans/simulate', [App\Http\Controllers\Admin\LoanController::class, 'simulate'])
+    ->name('loans.simulate');
 Route::get('loans/generate-code', [LoanController::class, 'generateCode'])->name('loans.generate-code');
 Route::resource('loans', LoanController::class)->except(['create', 'show']);
 
